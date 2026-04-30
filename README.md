@@ -1,4 +1,4 @@
-# AI-Powered Smart Facility & Support Operations System
+AI-Powered Smart Facility & Support Operations System
 
 ![Status](https://img.shields.io/badge/Status-In%20Development-yellow)
 ![Stack](https://img.shields.io/badge/Stack-NestJS%20%7C%20React%20%7C%20Python%20%7C%20PostgreSQL-blue)
@@ -12,7 +12,7 @@ The platform is intended to support:
 - visitor and meeting operations
 - future AI-assisted intelligence
 
-## 1. Project Summary
+ 1. Project Summary
 
 The system is designed to improve how organizations manage workplace operations through structured digital workflows.
 
@@ -24,7 +24,7 @@ It covers four main operational areas:
 
 This project is being prepared as a strong technical foundation that can support future expansion into additional SaaS services.
 
-## 2. Core Product Areas
+2. Core Product Areas
 
 ### 2.1 Facility Operations
 This area supports:
@@ -35,7 +35,7 @@ This area supports:
 - visitor readiness
 - future room utilization and no-show intelligence
 
-### 2.2 Support Operations
+ 2.2 Support Operations
 This area supports:
 - ticket creation
 - issue categorization
@@ -44,14 +44,14 @@ This area supports:
 - resolution workflows
 - operational accountability and support visibility
 
-### 2.3 Visitor Workflows
+ 2.3 Visitor Workflows
 This area supports:
 - visitor records
 - host-linked visitor context
 - booking-linked meeting context
 - reception workflow readiness
 
-### 2.4 AI-Assisted Intelligence
+ 2.4 AI-Assisted Intelligence
 Planned capabilities include:
 - no-show prediction
 - ticket categorization
@@ -60,9 +60,9 @@ Planned capabilities include:
 - forecasting
 - natural language support
 
-## 3. Technology Stack
+ 3. Technology Stack
 
-### 3.1 Backend
+ 3.1 Backend
 - NestJS
 - TypeScript
 - PostgreSQL
@@ -70,18 +70,18 @@ Planned capabilities include:
 - BullMQ + Redis
 - JWT Authentication
 
-### 3.2 Frontend
+ 3.2 Frontend
 - React
 - Vite
 - TypeScript
 - Tailwind CSS
 - Framer Motion
 
-### 3.3 AI Layer
+ 3.3 AI Layer
 - Python FastAPI
 - future support for prediction, categorization, routing, anomaly detection, forecasting, and natural language support
 
-## 4. System Architecture Overview
+ 4. System Architecture Overview
 
 ```mermaid
 flowchart TD
@@ -126,9 +126,9 @@ flowchart TD
     M --> M6[Natural Language Support]
 ```
 
-## 5. Operational Domains
+ 5. Operational Domains
 
-### 5.1 Facility Domain
+ 5.1 Facility Domain
 Responsible for:
 - rooms
 - bookings
@@ -136,7 +136,7 @@ Responsible for:
 - facility context
 - visitor readiness
 
-### 5.2 Support Domain
+ 5.2 Support Domain
 Responsible for:
 - incidents
 - service requests
@@ -145,7 +145,7 @@ Responsible for:
 - escalation
 - resolution workflows
 
-### 5.3 Connected Context
+ 5.3 Connected Context
 The platform is designed so that:
 - a booking can later generate a support ticket
 - a ticket can reference a room
@@ -153,11 +153,11 @@ The platform is designed so that:
 - a visitor can later relate to a booking or support workflow
 - repeated room incidents can be analyzed over time
 
-## 6. Backend Foundation
+ 6. Backend Foundation
 
 The backend foundation is the first major delivery target.
 
-### 6.1 Core Modules
+ 6.1 Core Modules
 - auth
 - users
 - roles / permission readiness
@@ -169,14 +169,14 @@ The backend foundation is the first major delivery target.
 - notifications
 - ai integration placeholder
 
-### 6.2 Core Entities
+6.2 Core Entities
 - user
 - room
 - booking
 - ticket
 - visitor
 
-### 6.3 Supported Roles
+ 6.3 Supported Roles
 - ADMIN
 - PM
 - SECRETARY
@@ -185,7 +185,7 @@ The backend foundation is the first major delivery target.
 - TECHNICIAN
 - CLIENT
 
-## 7. Backend Structure
+ 7. Backend Structure
 
 ```text
 server/
@@ -221,7 +221,7 @@ server/
   tsconfig.json
 ```
 
-## 8. Backend Module Layout
+ 8. Backend Module Layout
 
 ```mermaid
 flowchart TD
@@ -249,7 +249,7 @@ flowchart TD
     A --> M[(Redis / BullMQ)]
 ```
 
-## 9. Data and Workflow Flow
+ 9. Data and Workflow Flow
 
 ```mermaid
 flowchart LR
@@ -270,23 +270,23 @@ flowchart LR
     I --> J[Future AI Readiness]
 ```
 
-## 10. Planned Entity Direction
+10. Planned Entity Direction
 
-### 10.1 User
+ 10.1 User
 - name
 - email
 - password
 - role
 - isActive
 
-### 10.2 Room
+10.2 Room
 - name
 - location
 - capacity
 - description
 - isActive
 
-### 10.3 Booking
+ 10.3 Booking
 - title / purpose
 - room
 - createdBy
@@ -296,7 +296,7 @@ flowchart LR
 - status
 - notes
 
-### 10.4 Ticket
+10.4 Ticket
 - title
 - description
 - category
@@ -308,13 +308,13 @@ flowchart LR
 - roomId
 - visitorId
 
-### 10.5 Visitor
+ 10.5 Visitor
 - name
 - host
 - booking
 - check-in context
 
-## 11. AI Readiness
+ 11. AI Readiness
 
 The backend is expected to capture structured operational data from day one so future AI services can plug in without major rework.
 
@@ -354,9 +354,9 @@ flowchart TD
     H --> N[Natural Language Support]
 ```
 
-## 12. Development Roadmap
+ 12. Development Roadmap
 
-### 12.1 V1 — Foundation
+ 12.1 V1 — Foundation
 - NestJS project structure
 - PostgreSQL + Prisma setup
 - authentication foundation
@@ -367,7 +367,7 @@ flowchart TD
 - placeholder modules for visitors, activity, notifications, and AI integration
 - validation, error handling, and configuration readiness
 
-### 12.2 V2 — Operational Workflows
+ 12.2 V2 — Operational Workflows
 - booking approvals
 - conflict detection
 - ticket assignment and reassignment
@@ -377,7 +377,7 @@ flowchart TD
 - activity logs
 - contextual linking across core modules
 
-### 12.3 V3 — Intelligence and Admin Maturity
+12.3 V3 — Intelligence and Admin Maturity
 - AI integration endpoints and hooks
 - analytics and insights support
 - richer permissions
@@ -385,7 +385,7 @@ flowchart TD
 - operational anomaly and trend support
 - stronger admin controls
 
-## 13. API Direction
+ 13. API Direction
 
 Planned route groups:
 - /auth
@@ -399,7 +399,7 @@ Planned route groups:
 - /notifications
 - /ai
 
-## 14. Repository Purpose
+14. Repository Purpose
 
 This repository is intended to serve as the official technical foundation for the project.
 
@@ -411,17 +411,12 @@ It should remain:
 - extensible
 - ready for serious product growth
 
-## 15. Current Status
+ 15. Current Status
 
 - product direction clarified
 - backend stack selected
 - backend foundation structure defined
 - AI-readiness included in architecture
-- ready for backend foundation implementation
+- Backend foundation implementation layed down.
 
-## 16. Author
 
-Salat Caleb Kipkemoi  
-Full-Stack Developer | Machine Learning Engineer  
-ckipkemoi99@gmail.com  
-+254 727 845 605
