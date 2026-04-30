@@ -1,87 +1,129 @@
-AI-Powered Smart Facility & Support Operations System
+# AI-Powered Smart Facility & Support Operations System
 
 ![Status](https://img.shields.io/badge/Status-In%20Development-yellow)
 ![Stack](https://img.shields.io/badge/Stack-NestJS%20%7C%20React%20%7C%20Python%20%7C%20PostgreSQL-blue)
 ![License](https://img.shields.io/badge/License-Proprietary-red)
 
-This repository contains the technical foundation for a Smart Facility & Support Operations System.
+A smart operations platform for managing facilities, support workflows, visitors, HR operations, and AI-assisted intelligence.
 
-The platform is intended to support:
-- facility and boardroom booking
-- support ticketing and service workflows
-- visitor and meeting operations
-- future AI-assisted intelligence
+The system is designed as a scalable foundation for workplace operations and future SaaS expansion.
 
- 1. Project Summary
+## Core Operational Areas
 
-The system is designed to improve how organizations manage workplace operations through structured digital workflows.
+- Facility operations
+- Support ticketing
+- Visitor workflows
+- HR and workforce operations
+- AI-assisted intelligence
 
-It covers four main operational areas:
-- facility operations
-- support operations
-- visitor workflows
-- AI-assisted operational intelligence
+## Product Scope
 
-This project is being prepared as a strong technical foundation that can support future expansion into additional SaaS services.
+### Facility Operations
 
-2. Core Product Areas
+- Room bookings
+- Booking approvals
+- Availability tracking
+- Meeting readiness
+- Facility utilization
+- No-show tracking
+- Future forecasting
 
-### 2.1 Facility Operations
-This area supports:
-- room and boardroom booking
-- room availability tracking
-- booking status workflows
-- meeting and scheduling context
-- visitor readiness
-- future room utilization and no-show intelligence
+### Support Operations
 
- 2.2 Support Operations
-This area supports:
-- ticket creation
-- issue categorization
-- assignment and reassignment
-- escalation readiness
-- resolution workflows
-- operational accountability and support visibility
+- Ticket creation
+- Issue categorization
+- Ticket assignment
+- Reassignment
+- Escalation
+- Progress tracking
+- Resolution
+- Accountability
 
- 2.3 Visitor Workflows
-This area supports:
-- visitor records
-- host-linked visitor context
-- booking-linked meeting context
-- reception workflow readiness
+### Visitor Workflows
 
- 2.4 AI-Assisted Intelligence
-Planned capabilities include:
-- no-show prediction
-- ticket categorization
-- intelligent routing
-- anomaly detection
-- forecasting
-- natural language support
+- Visitor records
+- Check-in
+- Check-out
+- Host linking
+- Reception flow
+- Arrival alerts
+- Visit history
 
- 3. Technology Stack
+### HR & Workforce Operations
 
- 3.1 Backend
+- Employee records
+- Departments
+- Teams
+- Roles
+- Reporting lines
+- Leave management
+- Shifts
+- Rosters
+- Onboarding
+- Offboarding
+
+### Payroll Foundation
+
+- Payroll profiles
+- Compensation references
+- Attendance context
+- Leave records
+- Audit readiness
+
+Full payroll workflows will come later.
+
+Future payroll scope:
+
+- Payroll processing
+- Payslip generation
+- Statutory deductions
+- Tax handling
+- Payroll approvals
+
+### AI-Assisted Intelligence
+
+- No-show prediction
+- Ticket categorization
+- Intelligent routing
+- Anomaly detection
+- Forecasting
+- Workforce insights
+- Natural language support
+- Operational recommendations
+
+The AI layer will run as a separate intelligence service connected to the core platform.
+
+## Technology Stack
+
+### Backend
+
 - NestJS
 - TypeScript
 - PostgreSQL
-- Prisma
-- BullMQ + Redis
+- Prisma ORM
 - JWT Authentication
+- Redis
+- BullMQ
 
- 3.2 Frontend
+### Frontend
+
 - React
 - Vite
 - TypeScript
 - Tailwind CSS
 - Framer Motion
 
- 3.3 AI Layer
-- Python FastAPI
-- future support for prediction, categorization, routing, anomaly detection, forecasting, and natural language support
+### AI Service
 
- 4. System Architecture Overview
+- Python
+- FastAPI
+- Machine Learning APIs
+- Prediction APIs
+- Classification APIs
+- Forecasting APIs
+- Natural Language APIs
+
+## System Architecture Overview
 
 ```mermaid
 flowchart TD
@@ -91,6 +133,7 @@ flowchart TD
     A --> A4[Technician / Developer Workspace]
     A --> A5[Employee Portal]
     A --> A6[Reception / Visitor Interface]
+    A --> A7[HR / Workforce Dashboard]
 
     A1 --> B[Core API Layer - NestJS]
     A2 --> B
@@ -98,146 +141,19 @@ flowchart TD
     A4 --> B
     A5 --> B
     A6 --> B
+    A7 --> B
 
     B --> C[Auth Module]
-    B --> D[Users and Roles]
-    B --> E[Rooms Module]
+    B --> D[Users and Roles Module]
+    B --> E[Facilities Module]
     B --> F[Bookings Module]
     B --> G[Tickets Module]
     B --> H[Visitors Module]
-    B --> I[Activity and Notifications]
-    B --> J[AI Integration Placeholder]
+    B --> I[HR Module]
+    B --> J[Activity and Notifications Module]
+    B --> K[AI Integration Module]
 
-    E --> K[(PostgreSQL + Prisma)]
-    F --> K
-    G --> K
-    H --> K
-    D --> K
-    C --> K
-
-    B --> L[(Redis + BullMQ)]
-
-    J --> M[Future Python FastAPI AI Service]
-    M --> M1[No-show Prediction]
-    M --> M2[Ticket Categorization]
-    M --> M3[Intelligent Routing]
-    M --> M4[Anomaly Detection]
-    M --> M5[Forecasting]
-    M --> M6[Natural Language Support]
-```
-
- 5. Operational Domains
-
- 5.1 Facility Domain
-Responsible for:
-- rooms
-- bookings
-- scheduling
-- facility context
-- visitor readiness
-
- 5.2 Support Domain
-Responsible for:
-- incidents
-- service requests
-- tickets
-- assignment
-- escalation
-- resolution workflows
-
- 5.3 Connected Context
-The platform is designed so that:
-- a booking can later generate a support ticket
-- a ticket can reference a room
-- a ticket can reference a booking
-- a visitor can later relate to a booking or support workflow
-- repeated room incidents can be analyzed over time
-
- 6. Backend Foundation
-
-The backend foundation is the first major delivery target.
-
- 6.1 Core Modules
-- auth
-- users
-- roles / permission readiness
-- rooms
-- bookings
-- tickets
-- visitors
-- activity logs
-- notifications
-- ai integration placeholder
-
-6.2 Core Entities
-- user
-- room
-- booking
-- ticket
-- visitor
-
- 6.3 Supported Roles
-- ADMIN
-- PM
-- SECRETARY
-- TEAM_LEAD
-- DEVELOPER
-- TECHNICIAN
-- CLIENT
-
- 7. Backend Structure
-
-```text
-server/
-  src/
-    auth/
-    users/
-    roles/
-    rooms/
-    bookings/
-    tickets/
-    visitors/
-    activity/
-    notifications/
-    ai/
-    common/
-      decorators/
-      dto/
-      enums/
-      filters/
-      guards/
-      interceptors/
-      pipes/
-      utils/
-    config/
-    prisma/
-    app.module.ts
-    main.ts
-  prisma/
-    schema.prisma
-  .env
-  .gitignore
-  package.json
-  tsconfig.json
-```
-
- 8. Backend Module Layout
-
-```mermaid
-flowchart TD
-    A[Core API - NestJS] --> B[Auth]
-    A --> C[Users]
-    A --> D[Roles]
-    A --> E[Rooms]
-    A --> F[Bookings]
-    A --> G[Tickets]
-    A --> H[Visitors]
-    A --> I[Activity Logs]
-    A --> J[Notifications]
-    A --> K[AI Placeholder]
-
-    B --> L[(PostgreSQL)]
-    C --> L
+    C --> L[(PostgreSQL + Prisma)]
     D --> L
     E --> L
     F --> L
@@ -246,177 +162,275 @@ flowchart TD
     I --> L
     J --> L
 
-    A --> M[(Redis / BullMQ)]
+    B --> M[(Redis + BullMQ)]
+
+    K --> N[Python FastAPI AI Service]
+    N --> N1[No-show Prediction]
+    N --> N2[Ticket Categorization]
+    N --> N3[Intelligent Routing]
+    N --> N4[Anomaly Detection]
+    N --> N5[Forecasting]
+    N --> N6[Natural Language Support]
 ```
 
- 9. Data and Workflow Flow
-
-```mermaid
-flowchart LR
-    A[Room / Facility Context] --> B[Booking Created]
-    B --> C[Meeting / Visitor Context]
-    C --> D{Operational Issue?}
-    D -- No --> E[Normal Booking Flow]
-    D -- Yes --> F[Support Ticket Created]
-
-    F --> G[Assignment]
-    G --> H[Resolution Workflow]
-    H --> I[Operational History]
-
-    B --> I
-    F --> I
-    C --> I
-
-    I --> J[Future AI Readiness]
-```
-
-10. Planned Entity Direction
-
- 10.1 User
-- name
-- email
-- password
-- role
-- isActive
-
-10.2 Room
-- name
-- location
-- capacity
-- description
-- isActive
-
- 10.3 Booking
-- title / purpose
-- room
-- createdBy
-- date
-- startTime
-- endTime
-- status
-- notes
-
-10.4 Ticket
-- title
-- description
-- category
-- priority
-- status
-- createdBy
-- assignedTo
-- bookingId
-- roomId
-- visitorId
-
- 10.5 Visitor
-- name
-- host
-- booking
-- check-in context
-
- 11. AI Readiness
-
-The backend is expected to capture structured operational data from day one so future AI services can plug in without major rework.
-
-Data that should be captured early:
-- booking creation and updates
-- booking outcomes and status history
-- room usage patterns
-- ticket categories and priorities
-- ticket state changes
-- ticket-room linkage
-- ticket-booking linkage
-- visitor check-in events
-- user assignment history
-- repeated room issues
+## Operational Flow Overview
 
 ```mermaid
 flowchart TD
-    A[Operational Data] --> B[Bookings]
-    A --> C[Tickets]
-    A --> D[Rooms]
-    A --> E[Visitors]
-    A --> F[Activity Logs]
+    A[User Logs In] --> B[Role-Based Access Control]
 
-    B --> G[AI Integration Placeholder]
-    C --> G
-    D --> G
-    E --> G
-    F --> G
+    B --> C[Admin]
+    B --> D[Facility Manager / Secretary]
+    B --> E[Support Coordinator / PM]
+    B --> F[Technician / Developer]
+    B --> G[Employee]
+    B --> H[Reception]
+    B --> I[HR Officer]
 
-    G --> H[Future Python FastAPI AI Service]
+    C --> C1[Manage Users, Roles, Facilities, Tickets, HR, Visitors and Reports]
 
-    H --> I[No-show Prediction]
-    H --> J[Ticket Categorization]
-    H --> K[Intelligent Routing]
-    H --> L[Anomaly Detection]
-    H --> M[Forecasting]
-    H --> N[Natural Language Support]
+    D --> D1[Manage Facilities]
+    D --> D2[Approve or Reject Bookings]
+    D --> D3[Track Facility Usage]
+
+    E --> E1[Review Tickets]
+    E --> E2[Assign Tickets]
+    E --> E3[Escalate Issues]
+    E --> E4[Monitor Resolution Progress]
+
+    F --> F1[Receive Assigned Tickets]
+    F --> F2[Update Progress]
+    F --> F3[Resolve Issues]
+
+    G --> G1[Book Facilities]
+    G --> G2[Create Tickets]
+    G --> G3[Request Leave]
+    G --> G4[View Activity]
+
+    H --> H1[Register Visitors]
+    H --> H2[Link Visitor to Host]
+    H --> H3[Confirm Meeting Context]
+    H --> H4[Notify Host]
+
+    I --> I1[Manage Employees]
+    I --> I2[Manage Departments and Teams]
+    I --> I3[Track Leave and Availability]
+    I --> I4[Prepare Payroll Foundation]
 ```
 
- 12. Development Roadmap
+## HR and Payroll Foundation Flow
 
- 12.1 V1 — Foundation
-- NestJS project structure
-- PostgreSQL + Prisma setup
-- authentication foundation
-- users and roles foundation
-- rooms module
-- bookings module
-- tickets module
-- placeholder modules for visitors, activity, notifications, and AI integration
-- validation, error handling, and configuration readiness
+```mermaid
+flowchart TD
+    A[Employee Record Created] --> B[Department Assigned]
+    B --> C[Designation Assigned]
+    C --> D[Reporting Line Defined]
+    D --> E[Employment Status Tracked]
 
- 12.2 V2 — Operational Workflows
-- booking approvals
-- conflict detection
-- ticket assignment and reassignment
-- ticket comments
-- stronger authorization
-- notifications
-- activity logs
-- contextual linking across core modules
+    E --> F[Leave Records]
+    E --> G[Shift and Roster Records]
+    E --> H[Attendance Context]
+    E --> I[Compensation Reference]
 
-12.3 V3 — Intelligence and Admin Maturity
-- AI integration endpoints and hooks
-- analytics and insights support
-- richer permissions
-- audit logs
-- operational anomaly and trend support
-- stronger admin controls
+    F --> J[Payroll Foundation]
+    G --> J
+    H --> J
+    I --> J
 
- 13. API Direction
+    J --> K[Future Payroll Workflows]
+    K --> K1[Salary Processing]
+    K --> K2[Allowances]
+    K --> K3[Deductions]
+    K --> K4[Statutory Contributions]
+    K --> K5[Payslip Generation]
+    K --> K6[Payroll Reports]
+```
 
-Planned route groups:
-- /auth
-- /users
-- /roles
-- /rooms
-- /bookings
-- /tickets
-- /visitors
-- /activity
-- /notifications
-- /ai
+## AI Layer Flow
 
-14. Repository Purpose
+```mermaid
+flowchart TD
+    A[Core Platform Data] --> B[AI Integration Layer]
 
-This repository is intended to serve as the official technical foundation for the project.
+    B --> C[Facility Booking Data]
+    B --> D[Ticket Data]
+    B --> E[Visitor Data]
+    B --> F[HR and Workforce Data]
 
-It should remain:
-- clean
-- structured
-- team-friendly
-- backend-first
-- extensible
-- ready for serious product growth
+    C --> G[No-show Prediction]
+    C --> H[Facility Usage Forecasting]
 
- 15. Current Status
+    D --> I[Ticket Categorization]
+    D --> J[Intelligent Routing]
+    D --> K[Escalation Suggestions]
 
-- product direction clarified
-- backend stack selected
-- backend foundation structure defined
-- AI-readiness included in architecture
-- Backend foundation implementation layed down.
+    E --> L[Visitor Pattern Insights]
 
+    F --> M[Workforce Availability Insights]
+    F --> N[Shift and Leave Pattern Analysis]
 
+    G --> O[AI Recommendations]
+    H --> O
+    I --> O
+    J --> O
+    K --> O
+    L --> O
+    M --> O
+    N --> O
+
+    O --> P[Dashboards, Notifications and Reports]
+```
+
+## Core Modules
+
+- Auth
+- Users
+- Roles and Permissions
+- Facilities
+- Bookings
+- Tickets
+- Visitors
+- HR
+- Departments
+- Teams
+- Leave
+- Shifts and Rosters
+- Notifications
+- Activity Logs
+- Reports
+- AI Integration
+
+## User Roles
+
+- Super Admin
+- Admin
+- Facility Manager
+- Secretary
+- Support Coordinator
+- Project Manager
+- Team Lead
+- Technician
+- Developer
+- HR Officer
+- Employee
+- Receptionist
+
+Access is controlled through role-based permissions.
+
+## Authentication
+
+Planned authentication features:
+
+- Registration
+- Login
+- JWT authentication
+- Password hashing
+- Protected routes
+- User status control
+- Role-based access
+- Future OTP verification
+- Future Google Sign-In
+
+## Database Foundation
+
+Main entities may include:
+
+- User
+- Role
+- Permission
+- Department
+- Team
+- EmployeeProfile
+- Facility
+- Booking
+- Ticket
+- TicketCategory
+- TicketAssignment
+- Visitor
+- LeaveRequest
+- Shift
+- DutyRoster
+- Notification
+- ActivityLog
+- AIInsight
+- PayrollProfile
+- CompensationReference
+
+The database should support future expansion without breaking existing modules.
+
+## Payroll Readiness
+
+Payroll is not fully implemented in the foundation stage.
+
+The system prepares for payroll through:
+
+- Employee payroll profiles
+- Employment types
+- Compensation references
+- Basic salary references
+- Allowance readiness
+- Deduction readiness
+- Statutory contribution readiness
+- Leave and attendance context
+- Payroll status
+- Payroll notes
+- HR and payroll audit logs
+
+## Reporting Readiness
+
+Future reports may include:
+
+- Facility booking reports
+- Facility utilization reports
+- Ticket resolution reports
+- Escalation reports
+- Visitor reports
+- HR reports
+- Leave reports
+- Shift reports
+- Payroll readiness reports
+- AI prediction reports
+- Operational dashboards
+
+## Development Focus
+
+Current focus:
+
+- Clean backend architecture
+- Scalable database design
+- Role-based access control
+- Facility operations
+- Support ticketing
+- Visitor workflows
+- HR foundation
+- Payroll readiness
+- AI integration readiness
+- Future SaaS expansion
+
+## Future Expansion
+
+Planned future features:
+
+- Full payroll workflows
+- Advanced HR automation
+- Visitor self-check-in
+- Calendar integrations
+- Email and SMS notifications
+- AI assistant features
+- Voice and natural language commands
+- Meeting automation
+- Facility recommendations
+- SLA tracking
+- Advanced analytics
+- Multi-tenant SaaS support
+- Mobile apps
+
+## Repository Purpose
+
+This repository provides the foundation for a smart operations platform covering workplace management, support workflows, facility scheduling, workforce visibility, visitor coordination, and future AI automation.
+
+## License
+
+This project is proprietary.
+
+All rights reserved.
