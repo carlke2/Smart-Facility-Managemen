@@ -43,7 +43,7 @@ export class AuthService {
     if (!user) throw new BadRequestException('Invalid email or OTP');
     if (user.isEmailVerified) throw new BadRequestException('Email already verified');
     if (user.otpCode !== verifyDto.otp) throw new BadRequestException('Invalid OTP');
-    if (new Date() > new Date(user.otpExpiresAt)) throw new BadRequestException('OTP expired');
+    if (!user.otpExpiresAt || new Date() > new Date(user.otpExpiresAt)) throw new BadRequestException('OTP expired');
 
     await this.usersService.markEmailVerified(user.id);
     
@@ -110,6 +110,7 @@ export class AuthService {
     const user = await this.usersService.findRawById(userId);
     if (!user) throw new UnauthorizedException('User not found.');
 
+    if (!user.password) throw new BadRequestException('Password not set. Please use Google login.');
     const isCurrentValid = await bcrypt.compare(dto.currentPassword, user.password);
     if (!isCurrentValid) {
       throw new BadRequestException('Current password is incorrect.');

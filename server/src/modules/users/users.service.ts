@@ -7,6 +7,30 @@ import { CreateUserDto, UpdateUserDto } from './dto/user.dto';
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
+  async create(createUserDto: CreateUserDto) {
+    const existing = await this.prisma.user.findUnique({
+      where: { email: createUserDto.email },
+    });
+    if (existing) {
+      throw new ConflictException('A user with this email already exists.');
+    }
+
+    const hashedPassword = await bcrypt.hash(createUserDto.password, 12);
+
+    const user = await this.prisma.user.create({
+      data: {
+        name: createUserDto.name,
+        email: createUserDto.email,
+        password: hashedPassword,
+        role: createUserDto.role || 'CLIENT',
+        isEmailVerified: true,
+      },
+    });
+
+    const { password: _, ...result } = user;
+    return result;
+  }
+
   async createWithOtp(createUserDto: any, otpCode: string, otpExpiresAt: Date) {
     const existing = await this.prisma.user.findUnique({
       where: { email: createUserDto.email },
