@@ -11,10 +11,12 @@ import { VisitorsModule } from './modules/visitors/visitors.module';
 import { ActivityModule } from './modules/activity/activity.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AiGatewayModule } from './modules/ai-gateway/ai-gateway.module';
+import { SensorsModule } from './modules/sensors/sensors.module';
 import { QueueModule } from './queue/queue.module';
 
 @Module({
   imports: [
+
     // --- Configuration (validates required env vars at startup) ---
     ConfigModule.forRoot({
       isGlobal: true,
@@ -50,6 +52,10 @@ import { QueueModule } from './queue/queue.module';
 
     // --- AI Integration Boundary ---
     AiGatewayModule,
+
+    // --- Real-time Sensor Layer ---
+    SensorsModule,
   ],
 })
 export class AppModule {}
+
