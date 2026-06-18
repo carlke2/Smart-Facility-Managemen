@@ -63,4 +63,4 @@ Once the server is running, you can access the interactive Swagger documentation
 - `src/database`: Prisma service and connection handling.
 
 ---
-*Created by [Antigravity AI](https://github.com/google-deepmind) for the Smart Facility Project.*
+
