@@ -3,10 +3,16 @@ import { ValidationPipe, Logger } from '@nestjs/common';
 import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
+import { ActivityLoggerInterceptor } from './common/interceptors/activity-logger.interceptor';
+import { PrismaService } from './database/prisma.service';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
+
+  const prismaService = app.get(PrismaService);
+  app.useGlobalInterceptors(new ActivityLoggerInterceptor(prismaService));
+
 
   // --- Swagger Configuration ---
   const config = new DocumentBuilder()
