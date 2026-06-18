@@ -1,6 +1,8 @@
 import { Module } from '@nestjs/common';
 import { ConfigModule } from '@nestjs/config';
+import { ScheduleModule } from '@nestjs/schedule';
 import * as Joi from 'joi';
+
 
 import { DatabaseModule } from './database/database.module';
 import { AuthModule } from './modules/auth/auth.module';
@@ -30,6 +32,8 @@ import { QueueModule } from './queue/queue.module';
         NODE_ENV: Joi.string().valid('development', 'production', 'test').default('development'),
       }),
     }),
+    ScheduleModule.forRoot(),
+
 
     // --- Core Infrastructure ---
     DatabaseModule,

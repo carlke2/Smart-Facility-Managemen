@@ -1,6 +1,7 @@
 import { Module } from '@nestjs/common';
 import { RoomsModule } from './rooms/rooms.module';
 import { BookingsModule } from './bookings/bookings.module';
+import { GhostMeetingService } from './ghost-meeting.service';
 
 /**
  * FacilityModule — Domain A: Facility / Meeting Intelligence
@@ -8,6 +9,8 @@ import { BookingsModule } from './bookings/bookings.module';
  */
 @Module({
   imports: [RoomsModule, BookingsModule],
-  exports: [RoomsModule, BookingsModule],
+  providers: [GhostMeetingService],
+  exports: [RoomsModule, BookingsModule, GhostMeetingService],
 })
 export class FacilityModule {}
+
