@@ -8,3 +8,5 @@ import { LeaveModule } from './leave/leave.module';
   exports: [EmployeesModule, PayrollModule, LeaveModule],
 })
 export class HrModule {}
+
+
