@@ -1,11 +1,23 @@
 import { NestFactory, Reflector } from '@nestjs/core';
 import { ValidationPipe, Logger } from '@nestjs/common';
+import { SwaggerModule, DocumentBuilder } from '@nestjs/swagger';
 import { AppModule } from './app.module';
 import { AllExceptionsFilter } from './common/filters/all-exceptions.filter';
 
 async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const app = await NestFactory.create(AppModule);
+
+  // --- Swagger Configuration ---
+  const config = new DocumentBuilder()
+    .setTitle('Smart Facility API')
+    .setDescription('Unified platform for facility booking, ticketing, and AI operations.')
+    .setVersion('1.0')
+    .addBearerAuth()
+    .build();
+  const document = SwaggerModule.createDocument(app, config);
+  SwaggerModule.setup('api/docs', app, document);
+
 
   // --- Global API Prefix ---
   app.setGlobalPrefix('api/v1');
