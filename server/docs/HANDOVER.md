@@ -10,23 +10,20 @@ We have successfully laid a production-ready **NestJS** foundation that strictly
 
 ### 1. Technology Stack (Locked)
 - **Framework**: NestJS (TypeScript)
-- **ORM**: Prisma 7.8.0 (utilizing `@prisma/adapter-pg` for direct PostgreSQL connections)
-- **Database**: PostgreSQL (Supabase)
-- **Authentication**: JWT-based stateless auth with `@nestjs/passport`
-- **Background Tasks**: BullMQ + Redis integration foundation
-- **Validation**: Strict global pipes using `class-validator` and `joi`
+- **ORM**: Prisma 7.8.0
+- **Database**: PostgreSQL (Supabase) + Redis (Real-time Cache)
+- **Monitoring**: NestJS Schedule (Heartbeat/Cron)
+- **Ingestion**: Global ActivityLogger Interceptor
 
-### 2. Database & Domain Model
-The `schema.prisma` is fully defined and synced with the live database.
-- **Facility Domain**: `Room` and `Booking` entities.
-- **Support Domain**: `Ticket` entity (supports linking to Rooms, Bookings, or Visitors).
-- **Identity**: `User` entity supporting 7 distinct roles: `ADMIN`, `PM`, `SECRETARY`, `TEAM_LEAD`, `DEVELOPER`, `TECHNICIAN`, `CLIENT`.
-- **Placeholder Entities**: `Visitor` and basic `Activity` log structure.
+### 2. Database & Domain Model (Enterprise Ready)
+- **Multi-Tenancy**: Added `Organization` and `Site` models to support hierarchical facility management.
+- **AI Context**: Added `metadata` JSON fields to `Booking` and `Ticket` to store unstructured sensor data.
+- **Real-time**: Integrated `SensorsModule` with Redis for occupancy and telemetry tracking.
 
 ### 3. Core Infrastructure
-- **Prisma v7 Service**: A specialized `PrismaService` that manually injects the connection pool via an adapter to satisfy the strict constructor requirements of Prisma 7 when connection strings are excluded from the schema.
-- **Global Error Handling**: An `AllExceptionsFilter` that maps Prisma-specific errors (P2002, P2025) to standard HTTP status codes (409 Conflict, 404 Not Found, etc.).
-- **Role-Based Access Control (RBAC)**: A global `RolesGuard` combined with a custom `@Roles()` decorator allows for granular permission management at the controller level.
+- **Activity Ingestion**: Every state-changing request (POST/PATCH/DELETE) is now automatically captured by a global interceptor for AI training.
+- **Ghost Detection**: A 5-minute heartbeat service is now active in the `FacilityModule` to compare active bookings with real-time sensor data.
+
 
 ### 4. Logic & Endpoints
 - **Auth**: `/api/v1/auth/register`, `/api/v1/auth/login`, and `/api/v1/auth/me`.
