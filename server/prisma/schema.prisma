@@ -16,6 +16,28 @@ enum Role {
   CLIENT
 }
 
+model Organization {
+  id        String   @id @default(uuid())
+  name      String
+  slug      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  users     User[]
+  sites     Site[]
+}
+
+model Site {
+  id             String       @id @default(uuid())
+  name           String
+  location       String
+  organizationId String
+  organization   Organization @relation(fields: [organizationId], references: [id])
+  rooms          Room[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+}
+
+
 enum BookingStatus {
   PENDING
   APPROVED
@@ -57,6 +79,10 @@ model User {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
+  // Multi-tenancy
+  organizationId String?
+  organization   Organization? @relation(fields: [organizationId], references: [id])
+
   // Relations
   bookingsCreated Booking[] @relation("BookingCreator")
   ticketsCreated  Ticket[]  @relation("TicketCreator")
@@ -74,27 +100,33 @@ model Room {
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
+  // Hierarchical link
+  siteId String?
+  site   Site?   @relation(fields: [siteId], references: [id])
+
   // Relations
   bookings Booking[]
   tickets  Ticket[]
 }
 
+
 model Booking {
-  id          String        @id @default(uuid())
-  title       String
-  date        DateTime      @db.Date
-  startTime   DateTime      @db.Time
-  endTime     DateTime      @db.Time
-  status      BookingStatus @default(PENDING)
-  notes       String?
-  createdAt   DateTime      @default(now())
-  updatedAt   DateTime      @updatedAt
+  id        String        @id @default(uuid())
+  title     String
+  date      DateTime      @db.Date
+  startTime DateTime      @db.Time
+  endTime   DateTime      @db.Time
+  status    BookingStatus @default(PENDING)
+  notes     String?
+  metadata  Json? // Flexible storage for AI context
+  createdAt DateTime      @default(now())
+  updatedAt DateTime      @updatedAt
 
   // Relations
   roomId      String
-  room        Room          @relation(fields: [roomId], references: [id])
+  room        Room      @relation(fields: [roomId], references: [id])
   createdById String
-  createdBy   User          @relation("BookingCreator", fields: [createdById], references: [id])
+  createdBy   User      @relation("BookingCreator", fields: [createdById], references: [id])
   tickets     Ticket[]
   visitors    Visitor[]
 }
@@ -106,8 +138,10 @@ model Ticket {
   category    TicketCategory
   priority    TicketPriority @default(MEDIUM)
   status      TicketStatus   @default(OPEN)
+  metadata    Json? // Flexible storage for AI context
   createdAt   DateTime       @default(now())
   updatedAt   DateTime       @updatedAt
+
 
   // Relations
   createdById  String
