@@ -1,0 +1,138 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  ADMIN
+  PM
+  SECRETARY
+  TEAM_LEAD
+  DEVELOPER
+  TECHNICIAN
+  CLIENT
+}
+
+enum BookingStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+  COMPLETED
+}
+
+enum TicketStatus {
+  OPEN
+  IN_PROGRESS
+  RESOLVED
+  CLOSED
+  ESCALATED
+}
+
+enum TicketPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum TicketCategory {
+  HARDWARE
+  SOFTWARE
+  NETWORK
+  FACILITY
+  OTHER
+}
+
+model User {
+  id        String   @id @default(uuid())
+  name      String
+  email     String   @unique
+  password  String
+  role      Role     @default(CLIENT)
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  // Relations
+  bookingsCreated Booking[] @relation("BookingCreator")
+  ticketsCreated  Ticket[]  @relation("TicketCreator")
+  ticketsAssigned Ticket[]  @relation("TicketAssignee")
+  hostedVisitors  Visitor[] @relation("VisitorHost")
+}
+
+model Room {
+  id          String   @id @default(uuid())
+  name        String
+  location    String
+  capacity    Int
+  description String?
+  isActive    Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  // Relations
+  bookings Booking[]
+  tickets  Ticket[]
+}
+
+model Booking {
+  id          String        @id @default(uuid())
+  title       String
+  date        DateTime      @db.Date
+  startTime   DateTime      @db.Time
+  endTime     DateTime      @db.Time
+  status      BookingStatus @default(PENDING)
+  notes       String?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
+
+  // Relations
+  roomId      String
+  room        Room          @relation(fields: [roomId], references: [id])
+  createdById String
+  createdBy   User          @relation("BookingCreator", fields: [createdById], references: [id])
+  tickets     Ticket[]
+  visitors    Visitor[]
+}
+
+model Ticket {
+  id          String         @id @default(uuid())
+  title       String
+  description String
+  category    TicketCategory
+  priority    TicketPriority @default(MEDIUM)
+  status      TicketStatus   @default(OPEN)
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  // Relations
+  createdById  String
+  createdBy    User     @relation("TicketCreator", fields: [createdById], references: [id])
+  assignedToId String?
+  assignedTo   User?    @relation("TicketAssignee", fields: [assignedToId], references: [id])
+  bookingId    String?
+  booking      Booking? @relation(fields: [bookingId], references: [id])
+  roomId       String?
+  room         Room?    @relation(fields: [roomId], references: [id])
+  visitorId    String?
+  visitor      Visitor? @relation(fields: [visitorId], references: [id])
+}
+
+model Visitor {
+  id          String    @id @default(uuid())
+  name        String
+  checkInTime DateTime?
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  // Relations
+  hostId      String
+  host        User      @relation("VisitorHost", fields: [hostId], references: [id])
+  bookingId   String?
+  booking     Booking?  @relation(fields: [bookingId], references: [id])
+  tickets     Ticket[]
+}
