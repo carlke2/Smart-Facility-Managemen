@@ -14,7 +14,9 @@ import { ActivityModule } from './modules/activity/activity.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
 import { AiGatewayModule } from './modules/ai-gateway/ai-gateway.module';
 import { SensorsModule } from './modules/sensors/sensors.module';
+import { HrModule } from './modules/hr/hr.module';
 import { QueueModule } from './queue/queue.module';
+
 
 @Module({
   imports: [
@@ -59,7 +61,11 @@ import { QueueModule } from './queue/queue.module';
 
     // --- Real-time Sensor Layer ---
     SensorsModule,
+
+    // --- Human Resources & Payroll Layer ---
+    HrModule,
   ],
 })
 export class AppModule {}
+
 

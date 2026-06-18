@@ -180,7 +180,9 @@ model Employee {
   compensationProfiles CompensationProfile[]
   documents            EmployeeDocument[]
   bankDetails          BankDetail?
+  adjustments          PayrollAdjustment[]
 }
+
 
 
 
@@ -318,9 +320,11 @@ model PayrollAdjustment {
   amount          Decimal        @db.Decimal(12, 2)
   reason          String
   employeeId      String
+  employee        Employee      @relation(fields: [employeeId], references: [id])
   payrollPeriodId String
   payrollPeriod   PayrollPeriod @relation(fields: [payrollPeriodId], references: [id])
   createdAt       DateTime       @default(now())
   updatedAt       DateTime       @updatedAt
 }
+
 
