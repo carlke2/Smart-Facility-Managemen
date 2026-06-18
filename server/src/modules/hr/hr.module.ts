@@ -1,7 +1,8 @@
 import { Module } from '@nestjs/common';
-import { EmployeesModule } from './employees/employees.module';
-import { PayrollModule } from './payroll/payroll.module';
+import { EmployeesModule } from './employees';
+import { PayrollModule } from './payroll';
 import { LeaveModule } from './leave/leave.module';
+
 
 @Module({
   imports: [EmployeesModule, PayrollModule, LeaveModule],
