@@ -7,6 +7,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
 import { NotificationsService } from '../../notifications/notifications.service';
+import { ActivityService } from '../../activity/activity.service';
 import { CreateTicketDto, UpdateTicketDto, AssignTicketDto, ResolveTicketDto, AddCommentDto } from './dto/ticket.dto';
 
 @Injectable()
@@ -16,6 +17,7 @@ export class TicketsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
+    private readonly activityService: ActivityService,
   ) {}
 
   async create(dto: CreateTicketDto, createdById: string) {
@@ -66,7 +68,7 @@ export class TicketsService {
       resolutionDueAt = new Date(now.getTime() + rule.resolutionMinutes * 60000);
     }
 
-    return this.prisma.ticket.create({
+    const ticket = await this.prisma.ticket.create({
       data: {
         title: dto.title,
         description: dto.description,
@@ -88,6 +90,16 @@ export class TicketsService {
         booking: { select: { id: true, title: true, date: true } },
       },
     });
+
+    await this.activityService.log({
+      action: 'TICKET_CREATED',
+      entityType: 'Ticket',
+      entityId: ticket.id,
+      userId: createdById,
+      metadata: { title: ticket.title, category: ticket.category },
+    });
+
+    return ticket;
   }
 
   /** Assign ticket to a technician/team member */
@@ -115,6 +127,14 @@ export class TicketsService {
       updatedTicket.title,
       updatedTicket.id,
     );
+
+    await this.activityService.log({
+      action: 'TICKET_ASSIGNED',
+      entityType: 'Ticket',
+      entityId: updatedTicket.id,
+      userId: assignedById,
+      metadata: { assignedToId: dto.assignedToId },
+    });
 
     return updatedTicket;
   }
@@ -147,6 +167,14 @@ export class TicketsService {
         updatedTicket.id,
       );
     }
+
+    await this.activityService.log({
+      action: 'TICKET_ESCALATED',
+      entityType: 'Ticket',
+      entityId: updatedTicket.id,
+      userId: escalatedById,
+      metadata: { reason },
+    });
 
     return updatedTicket;
   }

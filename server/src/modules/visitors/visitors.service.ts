@@ -6,6 +6,7 @@ import {
 } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { NotificationsService } from '../notifications/notifications.service';
+import { ActivityService } from '../activity/activity.service';
 import { VisitorStatus } from '@prisma/client';
 import { CreateVisitorDto, CheckInVisitorDto, UpdateVisitorDto } from './dto/visitor.dto';
 
@@ -16,6 +17,7 @@ export class VisitorsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notifications: NotificationsService,
+    private readonly activityService: ActivityService,
   ) {}
 
   /** Pre-register an expected visitor (from booking or receptionist) */
@@ -58,6 +60,14 @@ export class VisitorsService {
 
     // Notify host immediately
     await this.notifyHost(visitor);
+
+    await this.activityService.log({
+      action: 'VISITOR_CHECK_IN',
+      entityType: 'Visitor',
+      entityId: visitor.id,
+      metadata: { isWalkIn: true, hostId: dto.hostId },
+    });
+
     return visitor;
   }
 
@@ -81,6 +91,14 @@ export class VisitorsService {
 
     // Fire host notification
     await this.notifyHost(updated);
+
+    await this.activityService.log({
+      action: 'VISITOR_CHECK_IN',
+      entityType: 'Visitor',
+      entityId: updated.id,
+      metadata: { isWalkIn: updated.isWalkIn, hostId: updated.hostId },
+    });
+
     return updated;
   }
 

@@ -1,6 +1,7 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
 import { NotificationsService } from '../../notifications/notifications.service';
+import { ActivityService } from '../../activity/activity.service';
 import { CreateBookingDto, UpdateBookingDto, ApproveBookingDto, RejectBookingDto } from './dto/booking.dto';
 
 @Injectable()
@@ -10,6 +11,7 @@ export class BookingsService {
   constructor(
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
+    private readonly activityService: ActivityService,
   ) {}
 
   async create(createBookingDto: CreateBookingDto, createdById: string) {
@@ -50,7 +52,7 @@ export class BookingsService {
       });
     }
 
-    return this.prisma.booking.create({
+    const booking = await this.prisma.booking.create({
       data: {
         title: createBookingDto.title,
         roomId: createBookingDto.roomId,
@@ -66,6 +68,16 @@ export class BookingsService {
       },
       include: { room: true, createdBy: { select: { id: true, name: true, email: true } } },
     });
+
+    await this.activityService.log({
+      action: 'BOOKING_CREATED',
+      entityType: 'Booking',
+      entityId: booking.id,
+      userId: createdById,
+      metadata: { title: booking.title, room: room.name },
+    });
+
+    return booking;
   }
 
   /** Approve a pending booking (SECRETARY / ADMIN / FACILITY_MANAGER) */
@@ -92,6 +104,13 @@ export class BookingsService {
       updatedBooking.id,
     );
 
+    await this.activityService.log({
+      action: 'BOOKING_APPROVED',
+      entityType: 'Booking',
+      entityId: updatedBooking.id,
+      userId: approverId,
+    });
+
     return updatedBooking;
   }
 
@@ -116,6 +135,14 @@ export class BookingsService {
       updatedBooking.id,
     );
 
+    await this.activityService.log({
+      action: 'BOOKING_REJECTED',
+      entityType: 'Booking',
+      entityId: updatedBooking.id,
+      userId: approverId,
+      metadata: { reason: dto.reason },
+    });
+
     return updatedBooking;
   }
 
@@ -133,19 +160,47 @@ export class BookingsService {
     }
 
     this.logger.log(`Booking ${bookingId} cancelled by user ${requesterId}`);
-    return this.prisma.booking.update({
+    const cancelledBooking = await this.prisma.booking.update({
       where: { id: bookingId },
       data: { status: 'CANCELLED' },
     });
+
+    await this.activityService.log({
+      action: 'BOOKING_CANCELLED',
+      entityType: 'Booking',
+      entityId: cancelledBooking.id,
+      userId: requesterId,
+    });
+
+    return cancelledBooking;
   }
 
   /** Mark booking as NO_SHOW (called by ghost-meeting heartbeat) */
   async markNoShow(bookingId: string) {
     this.logger.warn(`Marking booking ${bookingId} as NO_SHOW`);
-    return this.prisma.booking.update({
+    const booking = await this.prisma.booking.update({
       where: { id: bookingId },
       data: { status: 'NO_SHOW', noShowFlaggedAt: new Date() },
+      include: { room: true },
     });
+
+    await this.activityService.log({
+      action: 'SYSTEM_AUTO_RELEASE',
+      entityType: 'Booking',
+      entityId: booking.id,
+      metadata: { reason: 'GHOST_MEETING_DETECTED' },
+    });
+
+    // Notify organizer that room was released
+    await this.notificationsService.create({
+      userId: booking.createdById,
+      type: 'BOOKING_NO_SHOW',
+      title: 'Room Auto-Released (No-Show)',
+      body: `Your booking for ${booking.room.name} has been released due to inactivity.`,
+      metadata: { bookingId: booking.id },
+    });
+
+    return booking;
   }
 
   async findAll(status?: string) {

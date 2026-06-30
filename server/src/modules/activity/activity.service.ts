@@ -1,5 +1,8 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { ACTIVITY_QUEUE } from '../../queue/queue.constants';
 
 export interface LogActivityParams {
   action: string;       // e.g. 'BOOKING_CREATED', 'TICKET_ASSIGNED'
@@ -15,28 +18,26 @@ export interface LogActivityParams {
 export class ActivityService {
   private readonly logger = new Logger(ActivityService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @InjectQueue(ACTIVITY_QUEUE) private readonly activityQueue: Queue,
+  ) {}
 
   /**
-   * Write an activity log entry to the database.
-   * Called by services or the global interceptor after state-changing operations.
+   * Enqueue an async job to write an activity log entry to the database.
+   * This prevents activity logging from blocking the main request flow.
    */
   async log(params: LogActivityParams): Promise<void> {
     try {
-      await this.prisma.activityLog.create({
-        data: {
-          action: params.action,
-          entityType: params.entityType,
-          entityId: params.entityId,
-          userId: params.userId,
-          metadata: params.metadata ?? {},
-          ipAddress: params.ipAddress,
-          userAgent: params.userAgent,
-        },
+      this.logger.debug(`Enqueuing activity log: ${params.action} on ${params.entityType} ${params.entityId}`);
+      await this.activityQueue.add('write-activity-log', params, {
+        removeOnComplete: true,
+        removeOnFail: false,
+        attempts: 3,
+        backoff: { type: 'exponential', delay: 1000 },
       });
     } catch (err) {
-      // Never throw — activity logging must not break the main request flow
-      this.logger.error(`Failed to write activity log: ${(err as Error).message}`, (err as Error).stack);
+      this.logger.error(`Failed to enqueue activity log: ${(err as Error).message}`, (err as Error).stack);
     }
   }
 

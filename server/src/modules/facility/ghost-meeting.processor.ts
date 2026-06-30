@@ -4,6 +4,7 @@ import { Job } from 'bullmq';
 import { PrismaService } from '../../database/prisma.service';
 import Redis from 'ioredis';
 import { GHOST_MEETING_QUEUE } from '../../queue/queue.constants';
+import { BookingsService } from './bookings/bookings.service';
 
 @Processor(GHOST_MEETING_QUEUE)
 export class GhostMeetingProcessor extends WorkerHost {
@@ -12,6 +13,7 @@ export class GhostMeetingProcessor extends WorkerHost {
   constructor(
     private readonly prisma: PrismaService,
     @Inject('REDIS_CLIENT') private readonly redis: Redis,
+    private readonly bookingsService: BookingsService,
   ) {
     super();
   }
@@ -32,6 +34,8 @@ export class GhostMeetingProcessor extends WorkerHost {
         include: { room: true },
       });
 
+      let autoReleased = 0;
+
       for (const booking of activeBookings) {
         const sensorKey = `sensor:state:room_${booking.roomId}_occupancy`;
         const sensorData = await this.redis.get(sensorKey);
@@ -41,16 +45,18 @@ export class GhostMeetingProcessor extends WorkerHost {
 
           if (value === 0) {
             this.logger.warn(
-              `[GHOST DETECTED] Room ${booking.room.name} is booked but appears empty.`,
+              `[GHOST DETECTED] Room ${booking.room.name} is booked but appears empty. Auto-releasing...`,
             );
             
-            // Further automation logic like notifying the user or auto-releasing
-            // could be implemented here. For Phase 2, detection is sufficient.
+            await this.bookingsService.markNoShow(booking.id);
+            autoReleased++;
           }
         }
       }
 
-      return { processed: activeBookings.length };
+      return { processed: activeBookings.length, autoReleased };
     }
   }
 }
+
+

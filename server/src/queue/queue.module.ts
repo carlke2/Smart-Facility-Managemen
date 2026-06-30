@@ -1,4 +1,4 @@
-import { Module } from '@nestjs/common';
+import { Module, Global } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { ConfigModule, ConfigService } from '@nestjs/config';
 import {
@@ -6,6 +6,7 @@ import {
   ACTIVITY_QUEUE,
   SLA_MONITOR_QUEUE,
   GHOST_MEETING_QUEUE,
+  RECURRENCE_QUEUE,
 } from './queue.constants';
 
 /**
@@ -38,6 +39,7 @@ import {
       { name: ACTIVITY_QUEUE },
       { name: SLA_MONITOR_QUEUE },
       { name: GHOST_MEETING_QUEUE },
+      { name: RECURRENCE_QUEUE },
     ),
   ],
   exports: [BullModule],
