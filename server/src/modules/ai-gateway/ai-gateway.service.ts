@@ -1,29 +1,39 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { AI_INTEGRATION_QUEUE } from '../../queue/queue.constants';
 
-/**
- * AiGatewayService — PLACEHOLDER
- * Acts as the HTTP client proxy to the future FastAPI AI microservice.
- * Returns mocked/stub data until FastAPI service is live.
- */
 @Injectable()
 export class AiGatewayService {
   private readonly logger = new Logger(AiGatewayService.name);
 
-  // TODO: Inject HttpService from @nestjs/axios when FastAPI is ready
-  // private readonly aiServiceUrl = this.configService.get('AI_SERVICE_URL');
+  constructor(
+    @InjectQueue(AI_INTEGRATION_QUEUE) private readonly aiQueue: Queue,
+  ) {}
 
-  async predictNoShow(bookingId: string): Promise<{ probability: number }> {
-    this.logger.log(`[AI STUB] predictNoShow called for bookingId: ${bookingId}`);
-    return { probability: 0.0 }; // Stub
+  /**
+   * Enqueue a no-show prediction request for a booking.
+   */
+  async predictNoShow(bookingId: string): Promise<void> {
+    this.logger.log(`Enqueuing no-show prediction for booking: ${bookingId}`);
+    await this.aiQueue.add('predict-no-show', { bookingId }, {
+      removeOnComplete: true,
+      removeOnFail: false,
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 2000 },
+    });
   }
 
-  async categorizeTicket(description: string): Promise<{ category: string; confidence: number }> {
-    this.logger.log(`[AI STUB] categorizeTicket called`);
-    return { category: 'OTHER', confidence: 0.0 }; // Stub
-  }
-
-  async forecastRoomDemand(roomId: string): Promise<{ forecast: any[] }> {
-    this.logger.log(`[AI STUB] forecastRoomDemand called for roomId: ${roomId}`);
-    return { forecast: [] }; // Stub
+  /**
+   * Enqueue a ticket auto-categorization request.
+   */
+  async categorizeTicket(ticketId: string, description: string): Promise<void> {
+    this.logger.log(`Enqueuing categorization for ticket: ${ticketId}`);
+    await this.aiQueue.add('categorize-ticket', { ticketId, description }, {
+      removeOnComplete: true,
+      removeOnFail: false,
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 2000 },
+    });
   }
 }

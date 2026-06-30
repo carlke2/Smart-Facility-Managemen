@@ -546,4 +546,22 @@ model Shift {
   employee   Employee @relation(fields: [employeeId], references: [id])
 }
 
+// ─── AI Integration & Insights ─────────────────────────────────────────────────
+
+model AiInsight {
+  id          String   @id @default(uuid())
+  entityType  String   // e.g. "Booking", "Ticket"
+  entityId    String
+  insightType String   // e.g. "NO_SHOW_PREDICTION", "TICKET_CATEGORY"
+  prediction  Json?    // The predicted outcome or classification
+  confidence  Float?   // 0.0 to 1.0 confidence score
+  status      String   @default("PENDING") // PENDING, SUCCESS, FAILED
+  errorMessage String?
+  isApplied   Boolean  @default(false)     // True if the system automatically applied the prediction
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  @@index([entityType, entityId])
+}
+
 

@@ -7,6 +7,7 @@ import {
   SLA_MONITOR_QUEUE,
   GHOST_MEETING_QUEUE,
   RECURRENCE_QUEUE,
+  AI_INTEGRATION_QUEUE,
 } from './queue.constants';
 
 /**
@@ -40,6 +41,7 @@ import {
       { name: SLA_MONITOR_QUEUE },
       { name: GHOST_MEETING_QUEUE },
       { name: RECURRENCE_QUEUE },
+      { name: AI_INTEGRATION_QUEUE },
     ),
   ],
   exports: [BullModule],

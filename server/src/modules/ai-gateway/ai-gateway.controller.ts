@@ -16,9 +16,4 @@ export class AiGatewayController {
     return this.aiGatewayService.predictNoShow(bookingId);
   }
 
-  @Get('room-demand/:roomId')
-  @Roles(Role.ADMIN, Role.PM)
-  forecastDemand(@Param('roomId') roomId: string) {
-    return this.aiGatewayService.forecastRoomDemand(roomId);
-  }
 }
