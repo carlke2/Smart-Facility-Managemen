@@ -1,9 +1,11 @@
-import { Injectable, NotFoundException, BadRequestException } from '@nestjs/common';
+import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
-import { CreateBookingDto, UpdateBookingDto } from './dto/booking.dto';
+import { CreateBookingDto, UpdateBookingDto, ApproveBookingDto, RejectBookingDto } from './dto/booking.dto';
 
 @Injectable()
 export class BookingsService {
+  private readonly logger = new Logger(BookingsService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
   async create(createBookingDto: CreateBookingDto, createdById: string) {
@@ -16,7 +18,7 @@ export class BookingsService {
 
     if (end <= start) throw new BadRequestException('End time must be after start time.');
 
-    // Conflict check
+    // Conflict check (only against PENDING and APPROVED bookings)
     const conflict = await this.prisma.booking.findFirst({
       where: {
         roomId: createBookingDto.roomId,
@@ -24,8 +26,25 @@ export class BookingsService {
         status: { in: ['PENDING', 'APPROVED'] },
         AND: [{ startTime: { lt: end } }, { endTime: { gt: start } }],
       },
+      include: { room: { select: { name: true } } },
     });
-    if (conflict) throw new BadRequestException('Room is already booked for this time slot.');
+
+    if (conflict) {
+      // Suggest alternatives
+      const alternatives = await this.suggestAlternatives(
+        createBookingDto.roomId,
+        bookingDate,
+        start,
+        end,
+        room.capacity,
+      );
+
+      throw new BadRequestException({
+        message: 'Room is already booked for this time slot.',
+        conflictingBookingId: conflict.id,
+        alternatives,
+      });
+    }
 
     return this.prisma.booking.create({
       data: {
@@ -36,15 +55,82 @@ export class BookingsService {
         startTime: start,
         endTime: end,
         notes: createBookingDto.notes,
+        recurrence: createBookingDto.recurrence ?? 'NONE',
+        recurrenceEndDate: createBookingDto.recurrenceEndDate
+          ? new Date(createBookingDto.recurrenceEndDate)
+          : undefined,
       },
       include: { room: true, createdBy: { select: { id: true, name: true, email: true } } },
     });
   }
 
-  async findAll() {
+  /** Approve a pending booking (SECRETARY / ADMIN / FACILITY_MANAGER) */
+  async approve(bookingId: string, approverId: string, dto?: ApproveBookingDto) {
+    const booking = await this.findOne(bookingId);
+    if (booking.status !== 'PENDING') {
+      throw new BadRequestException(`Cannot approve a booking with status: ${booking.status}`);
+    }
+
+    this.logger.log(`Booking ${bookingId} approved by user ${approverId}`);
+    return this.prisma.booking.update({
+      where: { id: bookingId },
+      data: {
+        status: 'APPROVED',
+        approvedById: approverId,
+        notes: dto?.notes ?? booking.notes,
+      },
+      include: { room: true, createdBy: { select: { id: true, name: true, email: true } } },
+    });
+  }
+
+  /** Reject a pending booking with a reason */
+  async reject(bookingId: string, approverId: string, dto: RejectBookingDto) {
+    const booking = await this.findOne(bookingId);
+    if (booking.status !== 'PENDING') {
+      throw new BadRequestException(`Cannot reject a booking with status: ${booking.status}`);
+    }
+
+    this.logger.log(`Booking ${bookingId} rejected by user ${approverId}`);
+    return this.prisma.booking.update({
+      where: { id: bookingId },
+      data: { status: 'REJECTED', rejectedReason: dto.reason },
+      include: { room: true, createdBy: { select: { id: true, name: true, email: true } } },
+    });
+  }
+
+  /** Cancel a booking (requester or admin) */
+  async cancel(bookingId: string, requesterId: string, isAdmin = false) {
+    const booking = await this.findOne(bookingId);
+
+    if (!isAdmin && booking.createdById !== requesterId) {
+      throw new ForbiddenException('You can only cancel your own bookings.');
+    }
+
+    if (['COMPLETED', 'CANCELLED', 'NO_SHOW'].includes(booking.status)) {
+      throw new BadRequestException(`Cannot cancel a booking with status: ${booking.status}`);
+    }
+
+    this.logger.log(`Booking ${bookingId} cancelled by user ${requesterId}`);
+    return this.prisma.booking.update({
+      where: { id: bookingId },
+      data: { status: 'CANCELLED' },
+    });
+  }
+
+  /** Mark booking as NO_SHOW (called by ghost-meeting heartbeat) */
+  async markNoShow(bookingId: string) {
+    this.logger.warn(`Marking booking ${bookingId} as NO_SHOW`);
+    return this.prisma.booking.update({
+      where: { id: bookingId },
+      data: { status: 'NO_SHOW', noShowFlaggedAt: new Date() },
+    });
+  }
+
+  async findAll(status?: string) {
     return this.prisma.booking.findMany({
+      where: status ? { status: status as any } : undefined,
       include: {
-        room: true,
+        room: { select: { id: true, name: true, location: true } },
         createdBy: { select: { id: true, name: true, email: true } },
       },
       orderBy: { date: 'desc' },
@@ -58,7 +144,7 @@ export class BookingsService {
         room: true,
         createdBy: { select: { id: true, name: true, email: true } },
         visitors: true,
-        tickets: true,
+        tickets: { select: { id: true, title: true, status: true, priority: true, category: true } },
       },
     });
     if (!booking) throw new NotFoundException(`Booking with id ${id} not found.`);
@@ -71,7 +157,37 @@ export class BookingsService {
   }
 
   async remove(id: string) {
-    await this.findOne(id);
-    return this.prisma.booking.update({ where: { id }, data: { status: 'CANCELLED' } });
+    return this.cancel(id, '', true);
+  }
+
+  /** Suggest available rooms in the same time slot with similar or greater capacity */
+  private async suggestAlternatives(
+    excludeRoomId: string,
+    date: Date,
+    start: Date,
+    end: Date,
+    minCapacity: number,
+  ) {
+    const busyRooms = await this.prisma.booking.findMany({
+      where: {
+        date,
+        status: { in: ['PENDING', 'APPROVED'] },
+        AND: [{ startTime: { lt: end } }, { endTime: { gt: start } }],
+      },
+      select: { roomId: true },
+    });
+
+    const busyRoomIds = busyRooms.map((b) => b.roomId);
+    busyRoomIds.push(excludeRoomId);
+
+    return this.prisma.room.findMany({
+      where: {
+        isActive: true,
+        id: { notIn: busyRoomIds },
+        capacity: { gte: minCapacity },
+      },
+      select: { id: true, name: true, location: true, capacity: true },
+      take: 5,
+    });
   }
 }

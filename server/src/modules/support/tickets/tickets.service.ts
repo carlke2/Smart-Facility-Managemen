@@ -1,29 +1,204 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import {
+  Injectable,
+  NotFoundException,
+  BadRequestException,
+  ForbiddenException,
+  Logger,
+} from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
-import { CreateTicketDto, UpdateTicketDto } from './dto/ticket.dto';
+import { CreateTicketDto, UpdateTicketDto, AssignTicketDto, ResolveTicketDto, AddCommentDto } from './dto/ticket.dto';
 
 @Injectable()
 export class TicketsService {
+  private readonly logger = new Logger(TicketsService.name);
+
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createTicketDto: CreateTicketDto, createdById: string) {
+  async create(dto: CreateTicketDto, createdById: string) {
+    // If bookingId provided, auto-enrich with room context
+    let enrichedRoomId = dto.roomId;
+    let bookingContext: Record<string, any> = {};
+
+    if (dto.bookingId) {
+      const booking = await this.prisma.booking.findUnique({
+        where: { id: dto.bookingId },
+        include: { room: true, createdBy: { select: { name: true } } },
+      });
+      if (booking) {
+        enrichedRoomId = enrichedRoomId ?? booking.roomId;
+        bookingContext = {
+          bookingTitle: booking.title,
+          roomName: booking.room.name,
+          roomLocation: booking.room.location,
+          bookingDate: booking.date,
+          startTime: booking.startTime,
+          endTime: booking.endTime,
+          organizer: booking.createdBy.name,
+          bookingStatus: booking.status,
+        };
+      }
+    }
+
+    this.logger.log(`Creating ticket: "${dto.title}" [${dto.category}] by user ${createdById}`);
+
     return this.prisma.ticket.create({
-      data: { ...createTicketDto, createdById },
+      data: {
+        title: dto.title,
+        description: dto.description,
+        category: dto.category,
+        priority: dto.priority ?? 'MEDIUM',
+        createdById,
+        assignedToId: dto.assignedToId,
+        bookingId: dto.bookingId,
+        roomId: enrichedRoomId,
+        visitorId: dto.visitorId,
+        metadata: Object.keys(bookingContext).length ? bookingContext : undefined,
+      },
       include: {
         createdBy: { select: { id: true, name: true, email: true } },
-        room: true,
-        booking: true,
+        assignedTo: { select: { id: true, name: true, email: true } },
+        room: { select: { id: true, name: true, location: true } },
+        booking: { select: { id: true, title: true, date: true } },
       },
     });
   }
 
-  async findAll() {
-    return this.prisma.ticket.findMany({
+  /** Assign ticket to a technician/team member */
+  async assign(ticketId: string, dto: AssignTicketDto, assignedById: string) {
+    const ticket = await this.findOne(ticketId);
+    if (['RESOLVED', 'CLOSED'].includes(ticket.status)) {
+      throw new BadRequestException(`Cannot assign a ${ticket.status} ticket.`);
+    }
+
+    this.logger.log(`Ticket ${ticketId} assigned to ${dto.assignedToId} by ${assignedById}`);
+    return this.prisma.ticket.update({
+      where: { id: ticketId },
+      data: {
+        assignedToId: dto.assignedToId,
+        status: ticket.status === 'OPEN' ? 'IN_PROGRESS' : ticket.status,
+      },
+      include: {
+        assignedTo: { select: { id: true, name: true, email: true } },
+        createdBy: { select: { id: true, name: true } },
+      },
+    });
+  }
+
+  /** Escalate a ticket */
+  async escalate(ticketId: string, reason: string, escalatedById: string) {
+    const ticket = await this.findOne(ticketId);
+    if (['RESOLVED', 'CLOSED'].includes(ticket.status)) {
+      throw new BadRequestException(`Cannot escalate a ${ticket.status} ticket.`);
+    }
+
+    this.logger.warn(`Ticket ${ticketId} escalated by ${escalatedById}: ${reason}`);
+    return this.prisma.ticket.update({
+      where: { id: ticketId },
+      data: {
+        status: 'ESCALATED',
+        metadata: {
+          ...(ticket.metadata as object ?? {}),
+          escalationReason: reason,
+          escalatedAt: new Date().toISOString(),
+          escalatedById,
+        },
+      },
+    });
+  }
+
+  /** Resolve a ticket with a resolution note */
+  async resolve(ticketId: string, dto: ResolveTicketDto, resolvedById: string) {
+    const ticket = await this.findOne(ticketId);
+    if (['RESOLVED', 'CLOSED', 'CANCELLED'].includes(ticket.status)) {
+      throw new BadRequestException(`Ticket is already ${ticket.status}.`);
+    }
+
+    this.logger.log(`Ticket ${ticketId} resolved by ${resolvedById}`);
+    return this.prisma.ticket.update({
+      where: { id: ticketId },
+      data: { status: 'RESOLVED', resolutionNote: dto.resolutionNote },
+    });
+  }
+
+  /** Close a resolved ticket */
+  async close(ticketId: string, closedById: string) {
+    const ticket = await this.findOne(ticketId);
+    if (ticket.status !== 'RESOLVED') {
+      throw new BadRequestException('Only RESOLVED tickets can be closed.');
+    }
+
+    this.logger.log(`Ticket ${ticketId} closed by ${closedById}`);
+    return this.prisma.ticket.update({
+      where: { id: ticketId },
+      data: { status: 'CLOSED', closedAt: new Date() },
+    });
+  }
+
+  /** Add a comment to a ticket */
+  async addComment(ticketId: string, dto: AddCommentDto, authorId: string) {
+    await this.findOne(ticketId); // validate exists
+    return this.prisma.ticketComment.create({
+      data: {
+        ticketId,
+        authorId,
+        body: dto.body,
+        isInternal: dto.isInternal ?? false,
+      },
+      include: { author: { select: { id: true, name: true, role: true } } },
+    });
+  }
+
+  /** Get all comments for a ticket */
+  async getComments(ticketId: string, includeInternal = false) {
+    await this.findOne(ticketId);
+    return this.prisma.ticketComment.findMany({
+      where: {
+        ticketId,
+        ...(includeInternal ? {} : { isInternal: false }),
+      },
+      include: { author: { select: { id: true, name: true, role: true } } },
+      orderBy: { createdAt: 'asc' },
+    });
+  }
+
+  /** Get full booking + room context for a ticket */
+  async getContext(ticketId: string) {
+    const ticket = await this.prisma.ticket.findUnique({
+      where: { id: ticketId },
       include: {
         createdBy: { select: { id: true, name: true, email: true } },
         assignedTo: { select: { id: true, name: true, email: true } },
         room: true,
-        booking: true,
+        booking: {
+          include: {
+            room: true,
+            createdBy: { select: { name: true, email: true } },
+            visitors: { select: { id: true, name: true, company: true } },
+          },
+        },
+        visitor: true,
+        comments: {
+          where: { isInternal: false },
+          orderBy: { createdAt: 'asc' },
+          include: { author: { select: { name: true, role: true } } },
+        },
+      },
+    });
+    if (!ticket) throw new NotFoundException('Ticket not found');
+    return ticket;
+  }
+
+  async findAll(filters?: { status?: string; category?: string; assignedToId?: string }) {
+    return this.prisma.ticket.findMany({
+      where: {
+        ...(filters?.status ? { status: filters.status as any } : {}),
+        ...(filters?.category ? { category: filters.category as any } : {}),
+        ...(filters?.assignedToId ? { assignedToId: filters.assignedToId } : {}),
+      },
+      include: {
+        createdBy: { select: { id: true, name: true } },
+        assignedTo: { select: { id: true, name: true } },
+        room: { select: { id: true, name: true } },
       },
       orderBy: { createdAt: 'desc' },
     });
@@ -35,22 +210,44 @@ export class TicketsService {
       include: {
         createdBy: { select: { id: true, name: true, email: true } },
         assignedTo: { select: { id: true, name: true, email: true } },
-        room: true,
-        booking: true,
-        visitor: true,
+        room: { select: { id: true, name: true, location: true } },
+        booking: { select: { id: true, title: true, date: true, startTime: true, endTime: true } },
+        comments: { where: { isInternal: false }, take: 5, orderBy: { createdAt: 'desc' } },
       },
     });
     if (!ticket) throw new NotFoundException(`Ticket with id ${id} not found.`);
     return ticket;
   }
 
-  async update(id: string, updateTicketDto: UpdateTicketDto) {
+  async update(id: string, dto: UpdateTicketDto) {
     await this.findOne(id);
-    return this.prisma.ticket.update({ where: { id }, data: updateTicketDto });
+    return this.prisma.ticket.update({ where: { id }, data: dto as any });
   }
 
-  async remove(id: string) {
-    await this.findOne(id);
-    return this.prisma.ticket.update({ where: { id }, data: { status: 'CLOSED' } });
+  async getRoomIncidentHistory(roomId: string) {
+    const room = await this.prisma.room.findUnique({ where: { id: roomId } });
+    if (!room) throw new NotFoundException('Room not found');
+
+    const tickets = await this.prisma.ticket.findMany({
+      where: { roomId },
+      include: {
+        createdBy: { select: { name: true } },
+        assignedTo: { select: { name: true } },
+      },
+      orderBy: { createdAt: 'desc' },
+    });
+
+    // Aggregate by category
+    const byCategory = tickets.reduce<Record<string, number>>((acc, t) => {
+      acc[t.category] = (acc[t.category] ?? 0) + 1;
+      return acc;
+    }, {});
+
+    return {
+      room: { id: room.id, name: room.name, location: room.location },
+      totalIncidents: tickets.length,
+      byCategory,
+      recentTickets: tickets.slice(0, 10),
+    };
   }
 }
