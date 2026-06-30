@@ -548,20 +548,55 @@ model Shift {
 
 // ─── AI Integration & Insights ─────────────────────────────────────────────────
 
-model AiInsight {
-  id          String   @id @default(uuid())
-  entityType  String   // e.g. "Booking", "Ticket"
-  entityId    String
-  insightType String   // e.g. "NO_SHOW_PREDICTION", "TICKET_CATEGORY"
-  prediction  Json?    // The predicted outcome or classification
-  confidence  Float?   // 0.0 to 1.0 confidence score
-  status      String   @default("PENDING") // PENDING, SUCCESS, FAILED
-  errorMessage String?
-  isApplied   Boolean  @default(false)     // True if the system automatically applied the prediction
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
+enum AIInsightSourceType {
+  BOOKING
+  TICKET
+  ROOM
+  VISITOR
+  EMPLOYEE
+  SYSTEM
+}
 
-  @@index([entityType, entityId])
+enum AIInsightCapability {
+  TICKET_CLASSIFICATION
+  PRIORITY_SUGGESTION
+  ROUTING_SUGGESTION
+  NO_SHOW_PREDICTION
+  REPEAT_ISSUE_DETECTION
+  ANOMALY_DETECTION
+  WORKFORCE_INSIGHT
+  NATURAL_LANGUAGE
+}
+
+enum AIInsightStatus {
+  PENDING
+  COMPLETED
+  FAILED
+  ACCEPTED
+  OVERRIDDEN
+  IGNORED
+}
+
+model AiInsight {
+  id                 String              @id @default(uuid())
+  sourceType         AIInsightSourceType
+  sourceId           String
+  capability         AIInsightCapability
+  inputSnapshot      Json?
+  output             Json?
+  confidence         Float?              // 0.0 to 1.0 confidence score
+  recommendation     Json?
+  explanation        String?
+  modelVersion       String?
+  status             AIInsightStatus     @default(PENDING)
+  correlationId      String?
+  acceptedByUserId   String?
+  overriddenByUserId String?
+  overrideReason     String?
+  createdAt          DateTime            @default(now())
+  updatedAt          DateTime            @updatedAt
+
+  @@index([sourceType, sourceId])
 }
 
 

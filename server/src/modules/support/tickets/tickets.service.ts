@@ -8,7 +8,7 @@ import {
 import { PrismaService } from '../../../database/prisma.service';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { ActivityService } from '../../activity/activity.service';
-import { AiGatewayService } from '../../ai-gateway/ai-gateway.service';
+import { AiService } from '../../../ai/ai.service';
 import { CreateTicketDto, UpdateTicketDto, AssignTicketDto, ResolveTicketDto, AddCommentDto } from './dto/ticket.dto';
 
 @Injectable()
@@ -19,7 +19,7 @@ export class TicketsService {
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
     private readonly activityService: ActivityService,
-    private readonly aiGateway: AiGatewayService,
+    private readonly aiService: AiService,
   ) {}
 
   async create(dto: CreateTicketDto, createdById: string) {
@@ -102,7 +102,10 @@ export class TicketsService {
     });
 
     // Enqueue an AI categorization request
-    await this.aiGateway.categorizeTicket(ticket.id, ticket.description);
+    await this.aiService.enqueueTicketClassification(ticket.id, ticket.description);
+    
+    // Also enqueue priority suggestion
+    await this.aiService.enqueueTicketPriority(ticket.id, ticket.category, ticket.description);
 
     return ticket;
   }

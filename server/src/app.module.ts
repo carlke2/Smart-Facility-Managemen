@@ -12,7 +12,7 @@ import { SupportModule } from './modules/support/support.module';
 import { VisitorsModule } from './modules/visitors/visitors.module';
 import { ActivityModule } from './modules/activity/activity.module';
 import { NotificationsModule } from './modules/notifications/notifications.module';
-import { AiGatewayModule } from './modules/ai-gateway/ai-gateway.module';
+import { AiModule } from './ai/ai.module';
 import { SensorsModule } from './modules/sensors/sensors.module';
 import { HrModule } from './modules/hr/hr.module';
 import { QueueModule } from './queue/queue.module';
@@ -57,7 +57,7 @@ import { QueueModule } from './queue/queue.module';
     NotificationsModule,
 
     // --- AI Integration Boundary ---
-    AiGatewayModule,
+    AiModule,
 
     // --- Real-time Sensor Layer ---
     SensorsModule,

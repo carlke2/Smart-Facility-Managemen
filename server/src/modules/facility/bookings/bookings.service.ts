@@ -2,7 +2,7 @@ import { Injectable, NotFoundException, BadRequestException, ForbiddenException,
 import { PrismaService } from '../../../database/prisma.service';
 import { NotificationsService } from '../../notifications/notifications.service';
 import { ActivityService } from '../../activity/activity.service';
-import { AiGatewayService } from '../../ai-gateway/ai-gateway.service';
+import { AiService } from '../../../ai/ai.service';
 import { CreateBookingDto, UpdateBookingDto, ApproveBookingDto, RejectBookingDto } from './dto/booking.dto';
 
 @Injectable()
@@ -13,7 +13,7 @@ export class BookingsService {
     private readonly prisma: PrismaService,
     private readonly notificationsService: NotificationsService,
     private readonly activityService: ActivityService,
-    private readonly aiGateway: AiGatewayService,
+    private readonly aiService: AiService,
   ) {}
 
   async create(createBookingDto: CreateBookingDto, createdById: string) {
@@ -79,8 +79,8 @@ export class BookingsService {
       metadata: { title: booking.title, room: room.name },
     });
 
-    // Fire and forget no-show prediction to the AI Gateway queue
-    await this.aiGateway.predictNoShow(booking.id);
+    // Fire and forget no-show prediction to the AI queue
+    await this.aiService.enqueueNoShowPrediction(booking.id);
 
     return booking;
   }

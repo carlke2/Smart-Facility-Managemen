@@ -7,7 +7,7 @@ import {
   SLA_MONITOR_QUEUE,
   GHOST_MEETING_QUEUE,
   RECURRENCE_QUEUE,
-  AI_INTEGRATION_QUEUE,
+  AI_INFERENCE_QUEUE,
 } from './queue.constants';
 
 /**
@@ -23,14 +23,19 @@ import {
  * Adding a new queue: register it in BullModule.registerQueue below
  * and add its name constant to queue.constants.ts
  */
+@Global()
 @Module({
   imports: [
     BullModule.forRootAsync({
       imports: [ConfigModule],
-      useFactory: (configService: ConfigService) => ({
+      useFactory: async (configService: ConfigService) => ({
         connection: {
           host: configService.get<string>('REDIS_HOST', 'localhost'),
           port: configService.get<number>('REDIS_PORT', 6379),
+        },
+        defaultJobOptions: {
+          removeOnComplete: true, // Keep Redis clean
+          removeOnFail: false,    // Retain failed jobs for inspection
         },
       }),
       inject: [ConfigService],
@@ -41,7 +46,7 @@ import {
       { name: SLA_MONITOR_QUEUE },
       { name: GHOST_MEETING_QUEUE },
       { name: RECURRENCE_QUEUE },
-      { name: AI_INTEGRATION_QUEUE },
+      { name: AI_INFERENCE_QUEUE },
     ),
   ],
   exports: [BullModule],
