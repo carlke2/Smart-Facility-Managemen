@@ -1,7 +1,12 @@
 import { Module } from '@nestjs/common';
 import { BullModule } from '@nestjs/bullmq';
 import { ConfigModule, ConfigService } from '@nestjs/config';
-import { NOTIFICATION_QUEUE, ACTIVITY_QUEUE } from './queue.constants';
+import {
+  NOTIFICATION_QUEUE,
+  ACTIVITY_QUEUE,
+  SLA_MONITOR_QUEUE,
+  GHOST_MEETING_QUEUE,
+} from './queue.constants';
 
 /**
  * QueueModule — Foundation for background job processing.
@@ -10,6 +15,8 @@ import { NOTIFICATION_QUEUE, ACTIVITY_QUEUE } from './queue.constants';
  * Current queues:
  *  - notification-queue: Email, in-app, and SMS dispatch jobs
  *  - activity-queue: Audit log write jobs (non-blocking writes)
+ *  - sla-monitor-queue: SLA breach detection for tickets
+ *  - ghost-meeting-queue: Detect booked but empty rooms
  *
  * Adding a new queue: register it in BullModule.registerQueue below
  * and add its name constant to queue.constants.ts
@@ -29,6 +36,8 @@ import { NOTIFICATION_QUEUE, ACTIVITY_QUEUE } from './queue.constants';
     BullModule.registerQueue(
       { name: NOTIFICATION_QUEUE },
       { name: ACTIVITY_QUEUE },
+      { name: SLA_MONITOR_QUEUE },
+      { name: GHOST_MEETING_QUEUE },
     ),
   ],
   exports: [BullModule],
