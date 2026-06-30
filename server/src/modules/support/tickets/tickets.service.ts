@@ -41,18 +41,41 @@ export class TicketsService {
 
     this.logger.log(`Creating ticket: "${dto.title}" [${dto.category}] by user ${createdById}`);
 
+    const priority = dto.priority ?? 'MEDIUM';
+    
+    // SLA Engine: Lookup applicable rule (Category specific first, then fallback to priority-only)
+    const rule = await this.prisma.slaRule.findFirst({
+      where: {
+        priority,
+        isActive: true,
+        OR: [{ category: dto.category }, { category: null }],
+      },
+      orderBy: { category: 'desc' }, // Category specific rule wins over null
+    });
+
+    let responseDueAt: Date | undefined;
+    let resolutionDueAt: Date | undefined;
+
+    if (rule) {
+      const now = new Date();
+      responseDueAt = new Date(now.getTime() + rule.responseMinutes * 60000);
+      resolutionDueAt = new Date(now.getTime() + rule.resolutionMinutes * 60000);
+    }
+
     return this.prisma.ticket.create({
       data: {
         title: dto.title,
         description: dto.description,
         category: dto.category,
-        priority: dto.priority ?? 'MEDIUM',
+        priority,
         createdById,
         assignedToId: dto.assignedToId,
         bookingId: dto.bookingId,
         roomId: enrichedRoomId,
         visitorId: dto.visitorId,
         metadata: Object.keys(bookingContext).length ? bookingContext : undefined,
+        responseDueAt,
+        resolutionDueAt,
       },
       include: {
         createdBy: { select: { id: true, name: true, email: true } },
@@ -62,6 +85,7 @@ export class TicketsService {
       },
     });
   }
+
 
   /** Assign ticket to a technician/team member */
   async assign(ticketId: string, dto: AssignTicketDto, assignedById: string) {

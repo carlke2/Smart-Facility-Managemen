@@ -435,6 +435,23 @@ model TicketComment {
   author   User   @relation(fields: [authorId], references: [id])
 }
 
+// ─── SLA Engine ─────────────────────────────────────────────────────────────
+
+model SlaRule {
+  id                String          @id @default(uuid())
+  name              String
+  priority          TicketPriority
+  category          TicketCategory? // Null = applies to all categories with this priority
+  responseMinutes   Int             // Due time for initial assignment/response
+  resolutionMinutes Int             // Due time for resolving the ticket
+  isActive          Boolean         @default(true)
+  createdAt         DateTime        @default(now())
+  updatedAt         DateTime        @updatedAt
+
+  @@unique([priority, category])
+}
+
+
 
 // ─── Activity Log ─────────────────────────────────────────────────────────────
 
