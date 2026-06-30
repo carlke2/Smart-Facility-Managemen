@@ -1,11 +1,12 @@
 import { Module } from '@nestjs/common';
+import { VisitorsService } from './visitors.service';
+import { VisitorsController } from './visitors.controller';
+import { DatabaseModule } from '../../database/database.module';
 
-/**
- * VisitorsModule — PLACEHOLDER
- * Will handle: visitor registration, check-in/check-out,
- * host notifications, and visitor badge management.
- *
- * Connects to: Bookings (visit linked to booking), Tickets (visitor-related incidents)
- */
-@Module({})
+@Module({
+  imports: [DatabaseModule],
+  controllers: [VisitorsController],
+  providers: [VisitorsService],
+  exports: [VisitorsService],
+})
 export class VisitorsModule {}

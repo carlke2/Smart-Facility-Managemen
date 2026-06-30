@@ -1,21 +1,150 @@
 import { Injectable, Logger } from '@nestjs/common';
+import { PrismaService } from '../../database/prisma.service';
+import { NotificationType } from '@prisma/client';
 
-/**
- * NotificationsService — PLACEHOLDER
- * Methods are stubbed and log intent to console.
- * Replace with real email/SMS/in-app delivery when ready.
- */
+export interface CreateNotificationParams {
+  userId: string;
+  type: NotificationType;
+  title: string;
+  body: string;
+  metadata?: Record<string, any>;
+}
+
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
 
-  async sendEmail(to: string, subject: string, body: string) {
-    this.logger.log(`[EMAIL STUB] To: ${to} | Subject: ${subject}`);
-    // TODO: Integrate with nodemailer / SendGrid / Resend
+  constructor(private readonly prisma: PrismaService) {}
+
+  /** Create an in-app notification for a user */
+  async create(params: CreateNotificationParams) {
+    this.logger.log(`Creating ${params.type} notification for user: ${params.userId}`);
+    return this.prisma.notification.create({
+      data: {
+        userId: params.userId,
+        type: params.type,
+        title: params.title,
+        body: params.body,
+        metadata: params.metadata ?? {},
+        isRead: false,
+      },
+    });
   }
 
-  async sendInApp(userId: string, message: string) {
-    this.logger.log(`[IN-APP STUB] UserId: ${userId} | Message: ${message}`);
-    // TODO: Integrate with WebSocket gateway or notification table
+  /** Bulk-create notifications (e.g. notify all coordinators on SLA breach) */
+  async createMany(notifications: CreateNotificationParams[]) {
+    return this.prisma.notification.createMany({
+      data: notifications.map((n) => ({
+        userId: n.userId,
+        type: n.type,
+        title: n.title,
+        body: n.body,
+        metadata: n.metadata ?? {},
+        isRead: false,
+      })),
+    });
+  }
+
+  /** Get all notifications for a user (unread first, then by date) */
+  async findForUser(userId: string, onlyUnread = false) {
+    return this.prisma.notification.findMany({
+      where: { userId, ...(onlyUnread ? { isRead: false } : {}) },
+      orderBy: [{ isRead: 'asc' }, { createdAt: 'desc' }],
+      take: 100,
+    });
+  }
+
+  /** Get unread count for a user (for badge display) */
+  async getUnreadCount(userId: string): Promise<{ count: number }> {
+    const count = await this.prisma.notification.count({ where: { userId, isRead: false } });
+    return { count };
+  }
+
+  /** Mark a single notification as read */
+  async markRead(notificationId: string, userId: string) {
+    return this.prisma.notification.updateMany({
+      where: { id: notificationId, userId },
+      data: { isRead: true },
+    });
+  }
+
+  /** Mark all notifications as read for a user */
+  async markAllRead(userId: string) {
+    return this.prisma.notification.updateMany({
+      where: { userId, isRead: false },
+      data: { isRead: true },
+    });
+  }
+
+  // ─── Pre-built notification helpers ──────────────────────────────────────────
+
+  async notifyBookingApproved(userId: string, bookingTitle: string, bookingId: string) {
+    return this.create({
+      userId,
+      type: 'BOOKING_APPROVED',
+      title: 'Booking Approved',
+      body: `Your booking "${bookingTitle}" has been approved.`,
+      metadata: { bookingId },
+    });
+  }
+
+  async notifyBookingRejected(userId: string, bookingTitle: string, reason: string, bookingId: string) {
+    return this.create({
+      userId,
+      type: 'BOOKING_REJECTED',
+      title: 'Booking Rejected',
+      body: `Your booking "${bookingTitle}" was rejected. Reason: ${reason}`,
+      metadata: { bookingId },
+    });
+  }
+
+  async notifyTicketAssigned(userId: string, ticketTitle: string, ticketId: string) {
+    return this.create({
+      userId,
+      type: 'TICKET_ASSIGNED',
+      title: 'Ticket Assigned to You',
+      body: `You have been assigned ticket: "${ticketTitle}".`,
+      metadata: { ticketId },
+    });
+  }
+
+  async notifyTicketEscalated(userId: string, ticketTitle: string, ticketId: string) {
+    return this.create({
+      userId,
+      type: 'TICKET_ESCALATED',
+      title: 'Ticket Escalated',
+      body: `Ticket "${ticketTitle}" has been escalated and requires attention.`,
+      metadata: { ticketId },
+    });
+  }
+
+  async notifyVisitorArrived(hostId: string, visitorName: string, company: string | null, visitorId: string) {
+    return this.create({
+      hostId,
+      type: 'VISITOR_ARRIVED',
+      title: 'Visitor Arrived',
+      body: `${visitorName}${company ? ` from ${company}` : ''} has arrived at reception.`,
+      metadata: { visitorId },
+    } as any);
+  }
+
+  async notifyLeaveApproved(userId: string, leaveType: string, leaveId: string) {
+    return this.create({
+      userId,
+      type: 'LEAVE_APPROVED',
+      title: 'Leave Approved',
+      body: `Your ${leaveType} leave request has been approved.`,
+      metadata: { leaveId },
+    });
+  }
+
+  async notifyLeaveRejected(userId: string, leaveType: string, reviewNote: string | undefined, leaveId: string) {
+    return this.create({
+      userId,
+      type: 'LEAVE_REJECTED',
+      title: 'Leave Rejected',
+      body: `Your ${leaveType} leave request was rejected.${reviewNote ? ` Note: ${reviewNote}` : ''}`,
+      metadata: { leaveId },
+    });
   }
 }

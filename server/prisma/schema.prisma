@@ -84,6 +84,64 @@ enum BookingStatus {
   REJECTED
   CANCELLED
   COMPLETED
+  NO_SHOW
+  RELEASED
+}
+
+enum RecurrenceType {
+  NONE
+  DAILY
+  WEEKLY
+  CUSTOM
+}
+
+enum VisitorStatus {
+  EXPECTED
+  CHECKED_IN
+  WAITING
+  HOST_NOTIFIED
+  IN_MEETING
+  CHECKED_OUT
+  CANCELLED
+  UNMATCHED
+}
+
+enum LeaveType {
+  ANNUAL
+  SICK
+  EMERGENCY
+  MATERNITY
+  PATERNITY
+  UNPAID
+}
+
+enum LeaveStatus {
+  PENDING
+  APPROVED
+  REJECTED
+  CANCELLED
+}
+
+enum ShiftType {
+  MORNING
+  AFTERNOON
+  NIGHT
+  CUSTOM
+}
+
+enum NotificationType {
+  BOOKING_APPROVED
+  BOOKING_REJECTED
+  BOOKING_NO_SHOW
+  TICKET_ASSIGNED
+  TICKET_ESCALATED
+  TICKET_SLA_WARNING
+  TICKET_SLA_BREACH
+  TICKET_RESOLVED
+  VISITOR_ARRIVED
+  LEAVE_APPROVED
+  LEAVE_REJECTED
+  GENERAL
 }
 
 enum TicketStatus {
@@ -102,11 +160,17 @@ enum TicketPriority {
 }
 
 enum TicketCategory {
+  IT
+  AV_PROJECTOR
+  NETWORK
+  ACCESS_CONTROL
+  HVAC
+  WORKSPACE
+  VISITOR_RELATED
   HARDWARE
   SOFTWARE
-  NETWORK
   FACILITY
-  OTHER
+  GENERAL
 }
 
 enum EmploymentStatus {
@@ -127,25 +191,30 @@ enum EmploymentType {
 
 
 model User {
-  id        String   @id @default(uuid())
-  name      String
-  email     String   @unique
-  password  String
-  role      Role     @default(CLIENT)
-  isActive  Boolean  @default(true)
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id           String   @id @default(uuid())
+  name         String
+  email        String   @unique
+  password     String
+  role         Role     @default(CLIENT)
+  isActive     Boolean  @default(true)
+  refreshToken String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
 
   // Multi-tenancy
   organizationId String?
   organization   Organization? @relation(fields: [organizationId], references: [id])
 
   // Relations
-  bookingsCreated Booking[] @relation("BookingCreator")
-  ticketsCreated  Ticket[]  @relation("TicketCreator")
-  ticketsAssigned Ticket[]  @relation("TicketAssignee")
-  hostedVisitors  Visitor[] @relation("VisitorHost")
-  employeeRecord Employee?
+  bookingsCreated  Booking[]      @relation("BookingCreator")
+  ticketsCreated   Ticket[]       @relation("TicketCreator")
+  ticketsAssigned  Ticket[]       @relation("TicketAssignee")
+  hostedVisitors   Visitor[]      @relation("VisitorHost")
+  employeeRecord   Employee?
+  notifications    Notification[]
+  ticketComments   TicketComment[]
+  activityLogs     ActivityLog[]
+  approvedLeaves   LeaveRequest[] @relation("LeaveApprover")
 }
 
 model Employee {
@@ -181,6 +250,11 @@ model Employee {
   documents            EmployeeDocument[]
   bankDetails          BankDetail?
   adjustments          PayrollAdjustment[]
+
+  // HR Operations Relations
+  leaveRequests  LeaveRequest[]
+  leaveBalances  LeaveBalance[]
+  shifts         Shift[]
 }
 
 
@@ -207,16 +281,24 @@ model Room {
 
 
 model Booking {
-  id        String        @id @default(uuid())
-  title     String
-  date      DateTime      @db.Date
-  startTime DateTime      @db.Time
-  endTime   DateTime      @db.Time
-  status    BookingStatus @default(PENDING)
-  notes     String?
-  metadata  Json? // Flexible storage for AI context
-  createdAt DateTime      @default(now())
-  updatedAt DateTime      @updatedAt
+  id              String          @id @default(uuid())
+  title           String
+  date            DateTime        @db.Date
+  startTime       DateTime        @db.Time
+  endTime         DateTime        @db.Time
+  status          BookingStatus   @default(PENDING)
+  notes           String?
+  metadata        Json?           // Flexible storage for AI context
+  recurrence      RecurrenceType  @default(NONE)
+  recurrenceEndDate DateTime?
+  parentBookingId String?
+  parentBooking   Booking?        @relation("RecurringChildren", fields: [parentBookingId], references: [id])
+  childBookings   Booking[]       @relation("RecurringChildren")
+  approvedById    String?
+  rejectedReason  String?
+  noShowFlaggedAt DateTime?
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
   // Relations
   roomId      String
@@ -228,43 +310,54 @@ model Booking {
 }
 
 model Ticket {
-  id          String         @id @default(uuid())
-  title       String
-  description String
-  category    TicketCategory
-  priority    TicketPriority @default(MEDIUM)
-  status      TicketStatus   @default(OPEN)
-  metadata    Json? // Flexible storage for AI context
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
-
+  id               String         @id @default(uuid())
+  title            String
+  description      String
+  category         TicketCategory
+  priority         TicketPriority @default(MEDIUM)
+  status           TicketStatus   @default(OPEN)
+  metadata         Json?          // Flexible storage for AI context
+  resolutionNote   String?
+  responseDueAt    DateTime?      // SLA response deadline
+  resolutionDueAt  DateTime?      // SLA resolution deadline
+  slaBreached      Boolean        @default(false)
+  closedAt         DateTime?
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 
   // Relations
   createdById  String
-  createdBy    User     @relation("TicketCreator", fields: [createdById], references: [id])
+  createdBy    User            @relation("TicketCreator", fields: [createdById], references: [id])
   assignedToId String?
-  assignedTo   User?    @relation("TicketAssignee", fields: [assignedToId], references: [id])
+  assignedTo   User?           @relation("TicketAssignee", fields: [assignedToId], references: [id])
   bookingId    String?
-  booking      Booking? @relation(fields: [bookingId], references: [id])
+  booking      Booking?        @relation(fields: [bookingId], references: [id])
   roomId       String?
-  room         Room?    @relation(fields: [roomId], references: [id])
+  room         Room?           @relation(fields: [roomId], references: [id])
   visitorId    String?
-  visitor      Visitor? @relation(fields: [visitorId], references: [id])
+  visitor      Visitor?        @relation(fields: [visitorId], references: [id])
+  comments     TicketComment[]
 }
 
 model Visitor {
-  id          String    @id @default(uuid())
-  name        String
-  checkInTime DateTime?
-  createdAt   DateTime  @default(now())
-  updatedAt   DateTime  @updatedAt
+  id           String        @id @default(uuid())
+  name         String
+  email        String?
+  phone        String?
+  company      String?
+  status       VisitorStatus @default(EXPECTED)
+  checkInTime  DateTime?
+  checkOutTime DateTime?
+  isWalkIn     Boolean       @default(false)
+  createdAt    DateTime      @default(now())
+  updatedAt    DateTime      @updatedAt
 
   // Relations
-  hostId      String
-  host        User      @relation("VisitorHost", fields: [hostId], references: [id])
-  bookingId   String?
-  booking     Booking?  @relation(fields: [bookingId], references: [id])
-  tickets     Ticket[]
+  hostId    String
+  host      User     @relation("VisitorHost", fields: [hostId], references: [id])
+  bookingId String?
+  booking   Booking? @relation(fields: [bookingId], references: [id])
+  tickets   Ticket[]
 }
 
 model EmployeeDocument {
@@ -327,4 +420,111 @@ model PayrollAdjustment {
   updatedAt       DateTime       @updatedAt
 }
 
+// ─── Ticket Comments ─────────────────────────────────────────────────────────
 
+model TicketComment {
+  id         String   @id @default(uuid())
+  body       String
+  isInternal Boolean  @default(false) // staff-only note
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  ticketId String
+  ticket   Ticket @relation(fields: [ticketId], references: [id], onDelete: Cascade)
+  authorId String
+  author   User   @relation(fields: [authorId], references: [id])
+}
+
+
+// ─── Activity Log ─────────────────────────────────────────────────────────────
+
+model ActivityLog {
+  id         String   @id @default(uuid())
+  action     String   // e.g. "BOOKING_CREATED", "TICKET_ASSIGNED"
+  entityType String   // e.g. "Booking", "Ticket", "Visitor"
+  entityId   String
+  metadata   Json?    // diff, context, AI features
+  ipAddress  String?
+  userAgent  String?
+  createdAt  DateTime @default(now())
+
+  userId String?
+  user   User?  @relation(fields: [userId], references: [id])
+
+  @@index([entityType, entityId])
+  @@index([userId])
+  @@index([createdAt])
+}
+
+
+// ─── Notifications ────────────────────────────────────────────────────────────
+
+model Notification {
+  id        String           @id @default(uuid())
+  type      NotificationType
+  title     String
+  body      String
+  isRead    Boolean          @default(false)
+  metadata  Json?            // link to entity (bookingId, ticketId, etc.)
+  createdAt DateTime         @default(now())
+
+  userId String
+  user   User   @relation(fields: [userId], references: [id])
+
+  @@index([userId, isRead])
+}
+
+
+// ─── Leave Management ─────────────────────────────────────────────────────────
+
+model LeaveRequest {
+  id          String      @id @default(uuid())
+  type        LeaveType
+  startDate   DateTime
+  endDate     DateTime
+  status      LeaveStatus @default(PENDING)
+  reason      String
+  reviewNote  String?
+  createdAt   DateTime    @default(now())
+  updatedAt   DateTime    @updatedAt
+
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id])
+
+  approverId String?
+  approver   User?    @relation("LeaveApprover", fields: [approverId], references: [id])
+}
+
+
+model LeaveBalance {
+  id            String    @id @default(uuid())
+  year          Int
+  leaveType     LeaveType
+  totalDays     Float
+  usedDays      Float     @default(0)
+  remainingDays Float
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id])
+
+  @@unique([employeeId, year, leaveType])
+}
+
+
+// ─── Shifts & Rosters ─────────────────────────────────────────────────────────
+
+model Shift {
+  id        String    @id @default(uuid())
+  date      DateTime  @db.Date
+  startTime DateTime  @db.Time
+  endTime   DateTime  @db.Time
+  type      ShiftType @default(MORNING)
+  notes     String?
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+
+  employeeId String
+  employee   Employee @relation(fields: [employeeId], references: [id])
+}
