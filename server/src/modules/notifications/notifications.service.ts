@@ -1,6 +1,9 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { PrismaService } from '../../database/prisma.service';
 import { NotificationType } from '@prisma/client';
+import { InjectQueue } from '@nestjs/bullmq';
+import { Queue } from 'bullmq';
+import { NOTIFICATION_QUEUE } from '../../queue/queue.constants';
 
 export interface CreateNotificationParams {
   userId: string;
@@ -8,20 +11,27 @@ export interface CreateNotificationParams {
   title: string;
   body: string;
   metadata?: Record<string, any>;
+  hostId?: string; // used for Visitor notification hack in schema for now
 }
 
 @Injectable()
 export class NotificationsService {
   private readonly logger = new Logger(NotificationsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    @InjectQueue(NOTIFICATION_QUEUE) private readonly notificationQueue: Queue,
+  ) {}
 
-  /** Create an in-app notification for a user */
+  /** Create an in-app notification for a user and enqueue external dispatch */
   async create(params: CreateNotificationParams) {
-    this.logger.log(`Creating ${params.type} notification for user: ${params.userId}`);
-    return this.prisma.notification.create({
+    const targetUserId = params.userId || params.hostId;
+    this.logger.log(`Creating ${params.type} notification for user: ${targetUserId}`);
+    
+    // 1. Sync: Create In-App Notification Record
+    const record = await this.prisma.notification.create({
       data: {
-        userId: params.userId,
+        userId: targetUserId!,
         type: params.type,
         title: params.title,
         body: params.body,
@@ -29,7 +39,23 @@ export class NotificationsService {
         isRead: false,
       },
     });
+
+    // 2. Async: Enqueue External Delivery Job (Email/SMS)
+    await this.notificationQueue.add('dispatch-notification', {
+      userId: targetUserId,
+      type: params.type,
+      title: params.title,
+      body: params.body,
+      metadata: params.metadata,
+      notificationId: record.id,
+    }, {
+      attempts: 3,
+      backoff: { type: 'exponential', delay: 2000 },
+    });
+
+    return record;
   }
+
 
   /** Bulk-create notifications (e.g. notify all coordinators on SLA breach) */
   async createMany(notifications: CreateNotificationParams[]) {

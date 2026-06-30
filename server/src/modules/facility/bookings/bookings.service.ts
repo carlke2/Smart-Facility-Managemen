@@ -1,12 +1,16 @@
 import { Injectable, NotFoundException, BadRequestException, ForbiddenException, Logger } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
+import { NotificationsService } from '../../notifications/notifications.service';
 import { CreateBookingDto, UpdateBookingDto, ApproveBookingDto, RejectBookingDto } from './dto/booking.dto';
 
 @Injectable()
 export class BookingsService {
   private readonly logger = new Logger(BookingsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   async create(createBookingDto: CreateBookingDto, createdById: string) {
     const room = await this.prisma.room.findUnique({ where: { id: createBookingDto.roomId } });
@@ -72,7 +76,7 @@ export class BookingsService {
     }
 
     this.logger.log(`Booking ${bookingId} approved by user ${approverId}`);
-    return this.prisma.booking.update({
+    const updatedBooking = await this.prisma.booking.update({
       where: { id: bookingId },
       data: {
         status: 'APPROVED',
@@ -81,6 +85,14 @@ export class BookingsService {
       },
       include: { room: true, createdBy: { select: { id: true, name: true, email: true } } },
     });
+
+    await this.notificationsService.notifyBookingApproved(
+      updatedBooking.createdById,
+      updatedBooking.title,
+      updatedBooking.id,
+    );
+
+    return updatedBooking;
   }
 
   /** Reject a pending booking with a reason */
@@ -91,12 +103,22 @@ export class BookingsService {
     }
 
     this.logger.log(`Booking ${bookingId} rejected by user ${approverId}`);
-    return this.prisma.booking.update({
+    const updatedBooking = await this.prisma.booking.update({
       where: { id: bookingId },
       data: { status: 'REJECTED', rejectedReason: dto.reason },
       include: { room: true, createdBy: { select: { id: true, name: true, email: true } } },
     });
+
+    await this.notificationsService.notifyBookingRejected(
+      updatedBooking.createdById,
+      updatedBooking.title,
+      dto.reason,
+      updatedBooking.id,
+    );
+
+    return updatedBooking;
   }
+
 
   /** Cancel a booking (requester or admin) */
   async cancel(bookingId: string, requesterId: string, isAdmin = false) {

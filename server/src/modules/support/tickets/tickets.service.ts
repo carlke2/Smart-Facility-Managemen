@@ -6,13 +6,17 @@ import {
   Logger,
 } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
+import { NotificationsService } from '../../notifications/notifications.service';
 import { CreateTicketDto, UpdateTicketDto, AssignTicketDto, ResolveTicketDto, AddCommentDto } from './dto/ticket.dto';
 
 @Injectable()
 export class TicketsService {
   private readonly logger = new Logger(TicketsService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly notificationsService: NotificationsService,
+  ) {}
 
   async create(dto: CreateTicketDto, createdById: string) {
     // If bookingId provided, auto-enrich with room context
@@ -86,7 +90,6 @@ export class TicketsService {
     });
   }
 
-
   /** Assign ticket to a technician/team member */
   async assign(ticketId: string, dto: AssignTicketDto, assignedById: string) {
     const ticket = await this.findOne(ticketId);
@@ -95,7 +98,7 @@ export class TicketsService {
     }
 
     this.logger.log(`Ticket ${ticketId} assigned to ${dto.assignedToId} by ${assignedById}`);
-    return this.prisma.ticket.update({
+    const updatedTicket = await this.prisma.ticket.update({
       where: { id: ticketId },
       data: {
         assignedToId: dto.assignedToId,
@@ -106,6 +109,14 @@ export class TicketsService {
         createdBy: { select: { id: true, name: true } },
       },
     });
+
+    await this.notificationsService.notifyTicketAssigned(
+      dto.assignedToId,
+      updatedTicket.title,
+      updatedTicket.id,
+    );
+
+    return updatedTicket;
   }
 
   /** Escalate a ticket */
@@ -116,7 +127,7 @@ export class TicketsService {
     }
 
     this.logger.warn(`Ticket ${ticketId} escalated by ${escalatedById}: ${reason}`);
-    return this.prisma.ticket.update({
+    const updatedTicket = await this.prisma.ticket.update({
       where: { id: ticketId },
       data: {
         status: 'ESCALATED',
@@ -128,7 +139,18 @@ export class TicketsService {
         },
       },
     });
+
+    if (updatedTicket.assignedToId) {
+      await this.notificationsService.notifyTicketEscalated(
+        updatedTicket.assignedToId,
+        updatedTicket.title,
+        updatedTicket.id,
+      );
+    }
+
+    return updatedTicket;
   }
+
 
   /** Resolve a ticket with a resolution note */
   async resolve(ticketId: string, dto: ResolveTicketDto, resolvedById: string) {
