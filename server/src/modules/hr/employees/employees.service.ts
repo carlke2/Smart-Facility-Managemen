@@ -1,11 +1,15 @@
 import { Injectable, Logger, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../../../database/prisma.service';
+import { LeaveService } from '../leave/leave.service';
 
 @Injectable()
 export class EmployeesService {
   private readonly logger = new Logger(EmployeesService.name);
 
-  constructor(private readonly prisma: PrismaService) {}
+  constructor(
+    private readonly prisma: PrismaService,
+    private readonly leaveService: LeaveService,
+  ) {}
 
   /** Onboarding: creates the employee record and links to a system user */
   async onboardEmployee(userId: string, orgId: string, data: any) {
@@ -14,7 +18,7 @@ export class EmployeesService {
     // Strip DTO-only fields before passing to Prisma
     const { organizationId: _org, ...rest } = data;
 
-    return this.prisma.employee.create({
+    const employee = await this.prisma.employee.create({
       data: {
         userId,
         organizationId: orgId,
@@ -23,7 +27,18 @@ export class EmployeesService {
       },
       include: { user: { select: { name: true, email: true, role: true } } },
     });
+
+    // Auto-init annual leave balance for the current year
+    const currentYear = new Date().getFullYear();
+    await this.leaveService.initLeaveBalance(employee.id, {
+      year: currentYear,
+      leaveType: 'ANNUAL',
+      totalDays: 20, // Standard starting allocation
+    });
+
+    return employee;
   }
+
 
   /** Offboarding: marks EXITED and revokes system login */
   async offboardEmployee(employeeId: string) {
