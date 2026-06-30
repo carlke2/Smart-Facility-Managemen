@@ -68,4 +68,22 @@ export class UsersService {
     await this.prisma.user.delete({ where: { id } });
     return { message: 'User deleted successfully.' };
   }
+
+  /** Called by AuthService.changePassword — stores pre-hashed password */
+  async updatePassword(id: string, hashedPassword: string) {
+    await this.prisma.user.update({
+      where: { id },
+      data: { password: hashedPassword },
+    });
+  }
+
+  /**
+   * Internal-only: returns full user record including password hash.
+   * NEVER expose this to a controller response.
+   */
+  async findRawById(id: string) {
+    return this.prisma.user.findUnique({ where: { id } });
+  }
 }
+
+

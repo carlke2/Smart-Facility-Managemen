@@ -1,12 +1,23 @@
-import { IsNotEmpty, IsString, IsInt, IsOptional, IsBoolean, Min } from 'class-validator';
+import {
+  IsBoolean,
+  IsInt,
+  IsNotEmpty,
+  IsOptional,
+  IsString,
+  IsUUID,
+  MaxLength,
+  Min,
+} from 'class-validator';
 
 export class CreateRoomDto {
-  @IsNotEmpty()
   @IsString()
+  @IsNotEmpty()
+  @MaxLength(100)
   name: string;
 
-  @IsNotEmpty()
   @IsString()
+  @IsNotEmpty()
+  @MaxLength(200)
   location: string;
 
   @IsInt()
@@ -15,16 +26,23 @@ export class CreateRoomDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(500)
   description?: string;
+
+  @IsOptional()
+  @IsUUID()
+  siteId?: string;
 }
 
 export class UpdateRoomDto {
   @IsOptional()
   @IsString()
+  @MaxLength(100)
   name?: string;
 
   @IsOptional()
   @IsString()
+  @MaxLength(200)
   location?: string;
 
   @IsOptional()
@@ -34,9 +52,14 @@ export class UpdateRoomDto {
 
   @IsOptional()
   @IsString()
+  @MaxLength(500)
   description?: string;
 
   @IsOptional()
   @IsBoolean()
   isActive?: boolean;
+
+  @IsOptional()
+  @IsUUID()
+  siteId?: string;
 }
