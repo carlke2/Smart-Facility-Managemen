@@ -191,15 +191,20 @@ enum EmploymentType {
 
 
 model User {
-  id           String   @id @default(uuid())
-  name         String
-  email        String   @unique
-  password     String
-  role         Role     @default(CLIENT)
-  isActive     Boolean  @default(true)
-  refreshToken String?
-  createdAt    DateTime @default(now())
-  updatedAt    DateTime @updatedAt
+  id               String   @id @default(uuid())
+  name             String
+  email            String   @unique
+  phoneNumber      String?
+  password         String?
+  googleId         String?  @unique
+  role             Role     @default(CLIENT)
+  isActive         Boolean  @default(true)
+  isEmailVerified  Boolean  @default(false)
+  otpCode          String?
+  otpExpiresAt     DateTime?
+  refreshToken     String?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   // Multi-tenancy
   organizationId String?

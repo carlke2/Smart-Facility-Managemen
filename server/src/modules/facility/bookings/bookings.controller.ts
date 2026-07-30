@@ -38,6 +38,18 @@ export class BookingsController {
     return this.bookingsService.findAll(status);
   }
 
+  /** GET /bookings/mine — list current user's bookings */
+  @Get('mine')
+  findMine(@CurrentUser('id') userId: string) {
+    return this.bookingsService.findMine(userId);
+  }
+
+  /** GET /bookings/day — get availability for a day */
+  @Get('day')
+  findForDay(@Query('date') date: string) {
+    return this.bookingsService.findForDay(date);
+  }
+
   /** GET /bookings/:id — single booking detail with visitors + tickets */
   @Get(':id')
   findOne(@Param('id', ParseUUIDPipe) id: string) {

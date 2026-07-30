@@ -7,7 +7,7 @@ import { CreateUserDto, UpdateUserDto } from './dto/user.dto';
 export class UsersService {
   constructor(private readonly prisma: PrismaService) {}
 
-  async create(createUserDto: CreateUserDto) {
+  async createWithOtp(createUserDto: any, otpCode: string, otpExpiresAt: Date) {
     const existing = await this.prisma.user.findUnique({
       where: { email: createUserDto.email },
     });
@@ -19,13 +19,46 @@ export class UsersService {
 
     const user = await this.prisma.user.create({
       data: {
-        ...createUserDto,
+        name: createUserDto.name,
+        email: createUserDto.email,
+        phoneNumber: createUserDto.phoneNumber,
         password: hashedPassword,
+        otpCode,
+        otpExpiresAt,
       },
     });
 
     const { password: _, ...result } = user;
     return result;
+  }
+
+  async findRawByEmail(email: string) {
+    return this.prisma.user.findUnique({ where: { email } });
+  }
+
+  async markEmailVerified(id: string) {
+    return this.prisma.user.update({
+      where: { id },
+      data: { isEmailVerified: true, otpCode: null, otpExpiresAt: null },
+    });
+  }
+
+  async createGoogleUser(dto: any) {
+    return this.prisma.user.create({
+      data: {
+        name: dto.name,
+        email: dto.email,
+        googleId: dto.googleId,
+        isEmailVerified: true,
+      },
+    });
+  }
+
+  async linkGoogleAccount(id: string, googleId: string) {
+    return this.prisma.user.update({
+      where: { id },
+      data: { googleId },
+    });
   }
 
   async findAll() {

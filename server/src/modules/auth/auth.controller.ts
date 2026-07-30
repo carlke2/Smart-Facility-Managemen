@@ -1,7 +1,7 @@
 import { Controller, Post, Body, Get, Patch, UseGuards, Request, HttpCode, HttpStatus } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiBearerAuth } from '@nestjs/swagger';
 import { AuthService } from './auth.service';
-import { LoginDto, RegisterDto, ChangePasswordDto } from './dto/auth.dto';
+import { LoginDto, RegisterDto, ChangePasswordDto, VerifyOtpDto, GoogleLoginDto } from './dto/auth.dto';
 import { JwtAuthGuard } from '../../common/guards/jwt-auth.guard';
 import { CurrentUser } from '../../common/decorators/current-user.decorator';
 
@@ -15,6 +15,22 @@ export class AuthController {
   @ApiOperation({ summary: 'Register a new user' })
   register(@Body() registerDto: RegisterDto) {
     return this.authService.register(registerDto);
+  }
+
+  /** POST /auth/verify-otp — Verify email with OTP */
+  @Post('verify-otp')
+  @ApiOperation({ summary: 'Verify email with OTP' })
+  @HttpCode(HttpStatus.OK)
+  verifyOtp(@Body() verifyOtpDto: VerifyOtpDto) {
+    return this.authService.verifyOtp(verifyOtpDto);
+  }
+
+  /** POST /auth/google — Google OAuth login */
+  @Post('google')
+  @ApiOperation({ summary: 'Google Sign-in' })
+  @HttpCode(HttpStatus.OK)
+  googleLogin(@Body() googleLoginDto: GoogleLoginDto) {
+    return this.authService.googleLogin(googleLoginDto);
   }
 
   /** POST /auth/login — authenticate and receive JWT */

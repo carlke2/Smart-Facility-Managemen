@@ -219,6 +219,38 @@ export class BookingsService {
     });
   }
 
+  async findMine(userId: string) {
+    return this.prisma.booking.findMany({
+      where: { createdById: userId },
+      include: {
+        room: { select: { id: true, name: true, location: true } },
+      },
+      orderBy: { date: 'desc' },
+    });
+  }
+
+  async findForDay(dateStr: string) {
+    const date = new Date(dateStr);
+    const bookings = await this.prisma.booking.findMany({
+      where: {
+        date,
+        status: { in: ['PENDING', 'APPROVED'] }
+      },
+      include: { room: true },
+    });
+
+    const booked = bookings.map(b => ({
+      id: b.id,
+      title: b.title,
+      startAt: b.startTime.toISOString(),
+      endAt: b.endTime.toISOString(),
+      roomId: b.roomId,
+      roomName: b.room?.name,
+    }));
+
+    return { booked };
+  }
+
   async findOne(id: string) {
     const booking = await this.prisma.booking.findUnique({
       where: { id },
